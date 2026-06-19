@@ -1,0 +1,19 @@
+# Secrets & personal notes
+notes.md
+
+# AI assistant tooling
+.claude/
+
+# Dev utilities (not part of the app)
+generate-icons.js
+generate-icons.py
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# Env files
+.env
+.env.*
