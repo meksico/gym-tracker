@@ -13,7 +13,7 @@ import { getCurrentRoute } from './router.js';
 async function registerSW() {
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.register('./sw.js');
     } catch (err) {
       console.warn('SW registration failed:', err);
     }

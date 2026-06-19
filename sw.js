@@ -1,28 +1,31 @@
-const CACHE_NAME = 'gym-tracker-v4';
+const CACHE_NAME = 'gym-tracker-v5';
+
+// Detect subpath (e.g. /gym-tracker on GitHub Pages, empty string at root)
+const BASE = self.location.pathname.replace(/\/sw\.js$/, '');
 
 const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/src/main.js',
-  '/src/router.js',
-  '/src/config.js',
-  '/src/store/db.js',
-  '/src/store/planStore.js',
-  '/src/store/recentWeightStore.js',
-  '/src/store/logStore.js',
-  '/src/store/queueStore.js',
-  '/src/api/gas.js',
-  '/src/api/demoData.js',
-  '/src/lib/day.js',
-  '/src/lib/uuid.js',
-  '/src/sync/syncEngine.js',
-  '/src/ui/home.js',
-  '/src/ui/settings.js',
-  '/src/ui/exerciseModal.js',
-  '/src/ui/doneToday.js',
-  '/src/ui/components.js',
-  '/src/styles/app.css',
+  `${BASE}/`,
+  `${BASE}/index.html`,
+  `${BASE}/manifest.webmanifest`,
+  `${BASE}/src/main.js`,
+  `${BASE}/src/router.js`,
+  `${BASE}/src/config.js`,
+  `${BASE}/src/store/db.js`,
+  `${BASE}/src/store/planStore.js`,
+  `${BASE}/src/store/recentWeightStore.js`,
+  `${BASE}/src/store/logStore.js`,
+  `${BASE}/src/store/queueStore.js`,
+  `${BASE}/src/api/gas.js`,
+  `${BASE}/src/api/demoData.js`,
+  `${BASE}/src/lib/day.js`,
+  `${BASE}/src/lib/uuid.js`,
+  `${BASE}/src/sync/syncEngine.js`,
+  `${BASE}/src/ui/home.js`,
+  `${BASE}/src/ui/settings.js`,
+  `${BASE}/src/ui/exerciseModal.js`,
+  `${BASE}/src/ui/doneToday.js`,
+  `${BASE}/src/ui/components.js`,
+  `${BASE}/src/styles/app.css`,
 ];
 
 self.addEventListener('install', (event) => {
