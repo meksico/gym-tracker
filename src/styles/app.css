@@ -34,6 +34,19 @@ html, body {
 }
 
 /* ── App header ── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .app-header {
   display: flex;
   align-items: center;

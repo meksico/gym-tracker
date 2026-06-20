@@ -1,4 +1,4 @@
-import { getGasUrl, setGasUrl, isDemoMode, setDemoMode, isConfigured } from '../config.js';
+import { getGasUrl, setGasUrl, isDemoMode, setDemoMode, isConfigured, getGoogleUser, clearGoogleUser } from '../config.js';
 import { cachePlan } from '../store/planStore.js';
 import { cacheRecentWeights } from '../store/recentWeightStore.js';
 import { getPlan as fetchPlan, getRecentWeights as fetchRecentWeights } from '../api/gas.js';
@@ -171,6 +171,39 @@ export async function renderSettings() {
   demoCard.appendChild(demoDesc);
   demoCard.appendChild(demoBtn);
   main.appendChild(demoCard);
+
+  // ── Sign out card ──
+  const googleUser = getGoogleUser();
+  if (googleUser) {
+    const divider2 = document.createElement('div');
+    divider2.className = 'settings-divider';
+    divider2.textContent = 'акаунт';
+    main.appendChild(divider2);
+
+    const signOutCard = document.createElement('div');
+    signOutCard.className = 'settings-card';
+
+    const signOutTitle = document.createElement('p');
+    signOutTitle.className = 'settings-card__title';
+    signOutTitle.textContent = 'Google акаунт';
+
+    const signOutDesc = document.createElement('p');
+    signOutDesc.className = 'settings-card__desc';
+    signOutDesc.textContent = googleUser.name ? `Увійшли як ${googleUser.name}` : googleUser.email;
+
+    const signOutBtn = document.createElement('button');
+    signOutBtn.className = 'btn btn--secondary';
+    signOutBtn.textContent = 'Вийти з акаунту';
+
+    signOutBtn.addEventListener('click', () => {
+      clearGoogleUser();
+      if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
+      window.location.reload();
+    });
+
+    signOutCard.append(signOutTitle, signOutDesc, signOutBtn);
+    main.appendChild(signOutCard);
+  }
 
   app.appendChild(main);
 

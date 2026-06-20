@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-tracker-v5';
+const CACHE_NAME = 'gym-tracker-v6';
 
 // Detect subpath (e.g. /gym-tracker on GitHub Pages, empty string at root)
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '');
@@ -21,6 +21,7 @@ const SHELL_ASSETS = [
   `${BASE}/src/lib/uuid.js`,
   `${BASE}/src/sync/syncEngine.js`,
   `${BASE}/src/ui/home.js`,
+  `${BASE}/src/ui/loginScreen.js`,
   `${BASE}/src/ui/settings.js`,
   `${BASE}/src/ui/exerciseModal.js`,
   `${BASE}/src/ui/doneToday.js`,

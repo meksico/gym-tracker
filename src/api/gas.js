@@ -1,4 +1,4 @@
-import { getGasUrl } from '../config.js';
+import { getGasUrl, getGoogleUser } from '../config.js';
 
 function normaliseRow(row, index) {
   return {
@@ -51,7 +51,7 @@ export async function postLog(entry) {
     method: 'POST',
     mode: 'cors',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(entry),
+    body: JSON.stringify({ ...entry, userEmail: getGoogleUser()?.email || '' }),
   });
   if (!response.ok) throw new Error(`GAS API error: ${response.status}`);
   return response.json();
@@ -65,7 +65,7 @@ export async function patchLog(uuid, data) {
     method: 'POST',
     mode: 'cors',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ uuid, ...data }),
+    body: JSON.stringify({ uuid, ...data, userEmail: getGoogleUser()?.email || '' }),
   });
   if (!response.ok) throw new Error(`GAS API error: ${response.status}`);
   return response.json();

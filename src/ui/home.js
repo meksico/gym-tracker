@@ -4,6 +4,7 @@ import { getCurrentDay, getTrainingDays } from '../lib/day.js';
 import { chipEl, exerciseCardEl, appHeaderEl, emptyStateEl } from './components.js';
 import { renderExerciseModal } from './exerciseModal.js';
 import { navigate } from '../router.js';
+import { getGoogleUser } from '../config.js';
 
 let selectedDay = null;
 let dayPickerVisible = false;
@@ -15,7 +16,7 @@ export async function renderHome(day) {
   const app = document.getElementById('app');
   app.innerHTML = '';
 
-  app.appendChild(appHeaderEl({ onSettingsClick: () => navigate('#settings') }));
+  app.appendChild(appHeaderEl({ onSettingsClick: () => navigate('#settings'), user: getGoogleUser() }));
 
   const main = document.createElement('main');
   main.className = 'main';

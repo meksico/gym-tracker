@@ -33,3 +33,24 @@ export function setDemoMode(value) {
 export function isConfigured() {
   return Boolean(getGasUrl()) || isDemoMode();
 }
+
+export const GOOGLE_CLIENT_ID = '239860888601-52ta8ut5tpgvrnhc4d9j2flq44ah2oot.apps.googleusercontent.com';
+
+export function getGoogleUser() {
+  try {
+    const raw = localStorage.getItem('googleUser');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+export function setGoogleUser({ email, name, picture }) {
+  localStorage.setItem('googleUser', JSON.stringify({ email, name, picture }));
+}
+
+export function clearGoogleUser() {
+  localStorage.removeItem('googleUser');
+}
+
+export function isAuthenticated() {
+  return Boolean(getGoogleUser());
+}

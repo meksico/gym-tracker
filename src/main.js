@@ -6,9 +6,10 @@ import { DEMO_PLAN, DEMO_RECENT_WEIGHTS } from './api/demoData.js';
 import { renderHome } from './ui/home.js';
 import { renderSettings } from './ui/settings.js';
 import { getCurrentDay } from './lib/day.js';
-import { isDemoMode, isConfigured } from './config.js';
+import { isDemoMode, isConfigured, isAuthenticated } from './config.js';
 import { startSyncEngine } from './sync/syncEngine.js';
 import { getCurrentRoute } from './router.js';
+import { renderLoginScreen } from './ui/loginScreen.js';
 
 async function registerSW() {
   if ('serviceWorker' in navigator) {
@@ -60,6 +61,10 @@ async function loadAndRenderHome() {
 }
 
 async function route() {
+  if (!isAuthenticated() && !isDemoMode()) {
+    await renderLoginScreen();
+    return;
+  }
   const hash = getCurrentRoute();
   if (hash === '#settings') {
     await renderSettings();
