@@ -1,4 +1,4 @@
-import { GOOGLE_CLIENT_ID, setGoogleUser } from '../config.js';
+import { GOOGLE_CLIENT_ID, ALLOWED_EMAILS, setGoogleUser } from '../config.js';
 
 export async function renderLoginScreen() {
   const app = document.getElementById('app');
@@ -44,6 +44,12 @@ export async function renderLoginScreen() {
     client_id: GOOGLE_CLIENT_ID,
     callback: (response) => {
       const payload = decodeJwt(response.credential);
+      if (!ALLOWED_EMAILS.includes(payload.email)) {
+        errorEl.style.display = '';
+        errorEl.textContent = `⛔ Доступ заборонено для ${payload.email}`;
+        window.google.accounts.id.disableAutoSelect();
+        return;
+      }
       setGoogleUser({ email: payload.email, name: payload.name, picture: payload.picture });
       window.dispatchEvent(new Event('hashchange'));
     },

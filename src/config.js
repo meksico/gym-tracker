@@ -36,6 +36,8 @@ export function isConfigured() {
 
 export const GOOGLE_CLIENT_ID = '239860888601-52ta8ut5tpgvrnhc4d9j2flq44ah2oot.apps.googleusercontent.com';
 
+export const ALLOWED_EMAILS = ['eugene@garkavtcev.com'];
+
 export function getGoogleUser() {
   try {
     const raw = localStorage.getItem('googleUser');
