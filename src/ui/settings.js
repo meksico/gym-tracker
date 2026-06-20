@@ -80,7 +80,11 @@ export async function renderSettings() {
   connectBtn.className = 'btn btn--primary';
   connectBtn.textContent = 'Зберегти та підключити';
 
+  let connected = false;
+
   connectBtn.addEventListener('click', async () => {
+    if (connected) { navigate('#home'); return; }
+
     const url = urlInput.value.trim();
     if (!url) {
       statusText.className = 'settings-status settings-status--error';
@@ -119,10 +123,10 @@ export async function renderSettings() {
       statusText.textContent = `✓ Підключено — ${testData.length} вправ знайдено`;
 
       // Transform connect button into a Go button
+      connected = true;
       connectBtn.disabled = false;
       connectBtn.className = 'btn btn--primary';
       connectBtn.textContent = 'Перейти до тренувань →';
-      connectBtn.onclick = () => navigate('#home');
 
       const [planRows, weightRows] = await Promise.allSettled([
         fetchPlan(),
