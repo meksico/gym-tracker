@@ -1,5 +1,9 @@
 export function navigate(route) {
-  window.location.hash = route;
+  if (window.location.hash === route) {
+    window.dispatchEvent(new Event('hashchange'));
+  } else {
+    window.location.hash = route;
+  }
 }
 
 export function getCurrentRoute() {
