@@ -111,8 +111,18 @@ export async function renderSettings() {
       setGasUrl(url);
       setDemoMode(false);
 
+      // Update the top status chip immediately
+      statusChip.className = 'status-chip status-chip--connected';
+      statusChip.textContent = '● Підключено до Google Sheets';
+
       statusText.className = 'settings-status settings-status--ok';
       statusText.textContent = `✓ Підключено — ${testData.length} вправ знайдено`;
+
+      // Transform connect button into a Go button
+      connectBtn.disabled = false;
+      connectBtn.className = 'btn btn--primary';
+      connectBtn.textContent = 'Перейти до тренувань →';
+      connectBtn.onclick = () => navigate('#home');
 
       const [planRows, weightRows] = await Promise.allSettled([
         fetchPlan(),
@@ -121,7 +131,7 @@ export async function renderSettings() {
       if (planRows.status === 'fulfilled') await cachePlan(planRows.value);
       if (weightRows.status === 'fulfilled') await cacheRecentWeights(weightRows.value);
 
-      setTimeout(() => navigate('#home'), 900);
+      setTimeout(() => navigate('#home'), 2000);
     } catch (err) {
       statusText.className = 'settings-status settings-status--error';
       statusText.textContent = `✗ ${err.message}`;
