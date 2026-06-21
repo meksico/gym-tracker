@@ -7,11 +7,12 @@ html, body { height: 100%; background: var(--bg-primary); }
 ::-webkit-scrollbar { width: 0; height: 0; }
 
 #app {
-  min-height: 100vh;
+  height: 100vh;
   max-width: 430px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--bg-primary);
 }
 
