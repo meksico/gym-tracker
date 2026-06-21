@@ -3,6 +3,17 @@ import { SHEET_ID } from '../config.js';
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`;
 
+// Produces "M/D/YYYY H:MM:SS" matching the existing GAS server-side new Date() format
+function formatSheetDate(d) {
+  const M  = d.getMonth() + 1;
+  const D  = d.getDate();
+  const Y  = d.getFullYear();
+  const h  = d.getHours();
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${M}/${D}/${Y} ${h}:${mm}:${ss}`;
+}
+
 function authHeaders() {
   return {
     Authorization: `Bearer ${getAccessToken()}`,
@@ -66,7 +77,7 @@ export async function appendLog(entry) {
       body: JSON.stringify({
         values: [[
           entry.uuid,
-          new Date().toISOString(),
+          formatSheetDate(new Date()),
           entry.exercise,
           entry.weight ?? '',
           entry.reps   ?? '',
