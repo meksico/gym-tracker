@@ -1,6 +1,5 @@
-const CACHE_NAME = 'gym-tracker-v6';
+const CACHE_NAME = 'gym-tracker-v7';
 
-// Detect subpath (e.g. /gym-tracker on GitHub Pages, empty string at root)
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '');
 
 const SHELL_ASSETS = [
@@ -10,16 +9,18 @@ const SHELL_ASSETS = [
   `${BASE}/src/main.js`,
   `${BASE}/src/router.js`,
   `${BASE}/src/config.js`,
+  `${BASE}/src/auth/auth.js`,
+  `${BASE}/src/api/sheets.js`,
   `${BASE}/src/store/db.js`,
   `${BASE}/src/store/planStore.js`,
   `${BASE}/src/store/recentWeightStore.js`,
   `${BASE}/src/store/logStore.js`,
   `${BASE}/src/store/queueStore.js`,
-  `${BASE}/src/api/gas.js`,
-  `${BASE}/src/api/demoData.js`,
   `${BASE}/src/lib/day.js`,
   `${BASE}/src/lib/uuid.js`,
   `${BASE}/src/sync/syncEngine.js`,
+  `${BASE}/src/ui/tp7.css`,
+  `${BASE}/src/ui/tp7-ui.js`,
   `${BASE}/src/ui/home.js`,
   `${BASE}/src/ui/loginScreen.js`,
   `${BASE}/src/ui/settings.js`,
@@ -50,12 +51,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Pass GAS API calls and cross-origin requests through to network
-  if (url.hostname === 'script.google.com' || url.origin !== self.location.origin) {
-    return;
-  }
+  if (url.origin !== self.location.origin) return;
 
-  // Cache-first for all same-origin requests
   event.respondWith(
     caches.match(event.request).then(
       (cached) => cached || fetch(event.request)
