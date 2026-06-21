@@ -24,17 +24,6 @@ export const ALLOWED_USER_IDS = [
   '106560227422266150243'
 ];
 
-export function isConfigured() {
-  return Boolean(isAuthenticated());
-}
-
-export function isAuthenticated() {
-  try {
-    const raw = localStorage.getItem('gym_user_info');
-    return Boolean(raw && JSON.parse(raw)?.sub);
-  } catch { return false; }
-}
-
 export function getGoogleUser() {
   try {
     const raw = localStorage.getItem('gym_user_info');

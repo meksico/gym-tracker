@@ -1,58 +1,100 @@
 import { initAuth, signIn } from '../auth/auth.js';
 
-export function renderLoginScreen() {
+// Ensures the user is authenticated before the app routes to content.
+// - If token is cached and valid: resolves immediately (no UI shown).
+// - If sign-in is needed: renders the login screen and resolves after success.
+// - initAuth() is always called so the access token is restored into memory.
+export function ensureAuth() {
   return new Promise((resolve) => {
-    const app = document.getElementById('app');
-    app.innerHTML = '';
+    let uiRendered = false;
 
-    const screen = document.createElement('div');
-    screen.className = 'setup-screen';
+    function getOrCreateUI() {
+      if (uiRendered) return document.getElementById('login-card');
+      uiRendered = true;
 
-    const card = document.createElement('div');
-    card.className = 'setup-card';
+      const app = document.getElementById('app');
+      app.innerHTML = '';
 
-    const icon = document.createElement('div');
-    icon.className = 'setup-card__icon';
-    icon.textContent = '💪';
+      const screen = document.createElement('div');
+      screen.className = 'setup-screen';
 
-    const title = document.createElement('h2');
-    title.textContent = 'Gym Logs';
+      const card = document.createElement('div');
+      card.id        = 'login-card';
+      card.className = 'setup-card';
 
-    const desc = document.createElement('p');
-    desc.textContent = 'Увійдіть через Google щоб продовжити';
+      const icon = document.createElement('div');
+      icon.className  = 'setup-card__icon';
+      icon.textContent = '💪';
 
-    const btnContainer = document.createElement('div');
-    btnContainer.style.cssText = 'display:flex;justify-content:center;min-height:44px;margin-top:8px';
+      const title = document.createElement('h2');
+      title.textContent = 'Gym Logs';
 
-    const errorEl = document.createElement('p');
-    errorEl.className = 'settings-status settings-status--error';
-    errorEl.style.display = 'none';
+      const desc = document.createElement('p');
+      desc.textContent = 'Увійдіть через Google щоб продовжити';
 
-    card.append(icon, title, desc, btnContainer, errorEl);
-    screen.appendChild(card);
-    app.appendChild(screen);
+      const btnContainer = document.createElement('div');
+      btnContainer.id        = 'login-btn-container';
+      btnContainer.style.cssText = 'display:flex;justify-content:center;min-height:44px;margin-top:8px';
+
+      const errorEl = document.createElement('p');
+      errorEl.id        = 'login-error';
+      errorEl.className = 'settings-status settings-status--error';
+      errorEl.style.display = 'none';
+
+      card.append(icon, title, desc, btnContainer, errorEl);
+      screen.appendChild(card);
+      app.appendChild(screen);
+      return card;
+    }
 
     function showSignInButton() {
-      btnContainer.innerHTML = '';
+      getOrCreateUI();
+      const container = document.getElementById('login-btn-container');
+      if (!container) return;
+      container.innerHTML = '';
       const btn = document.createElement('button');
-      btn.className = 'btn btn--primary';
+      btn.className   = 'btn btn--primary';
       btn.textContent = 'Увійти через Google';
       btn.addEventListener('click', () => signIn());
-      btnContainer.appendChild(btn);
+      container.appendChild(btn);
+    }
+
+    function showError(text) {
+      getOrCreateUI();
+      const el = document.getElementById('login-error');
+      if (!el) return;
+      el.style.display = '';
+      el.textContent = text;
     }
 
     function showAccessDenied(userInfo) {
-      btnContainer.innerHTML = '';
-      errorEl.style.display  = '';
-      errorEl.innerHTML = `⛔ Доступ заборонено для <strong>${userInfo.email}</strong>.<br>
-        Надішліть свій ID адміністратору:<br>
-        <code style="user-select:all;word-break:break-all">${userInfo.sub}</code>`;
+      getOrCreateUI();
+      const container = document.getElementById('login-btn-container');
+      if (container) container.innerHTML = '';
+      const el = document.getElementById('login-error');
+      if (!el) return;
+      el.style.display = '';
+      el.textContent = '';
+
+      const line1 = document.createElement('span');
+      line1.textContent = `⛔ Доступ заборонено для `;
+      const bold = document.createElement('strong');
+      bold.textContent = userInfo.email;
+      line1.appendChild(bold);
+
+      const line2 = document.createElement('span');
+      line2.textContent = 'Надішліть свій ID адміністратору:';
+
+      const code = document.createElement('code');
+      code.style.cssText = 'user-select:all;word-break:break-all;display:block;margin-top:4px';
+      code.textContent = userInfo.sub;
+
+      el.append(line1, document.createElement('br'), line2, code);
     }
 
     initAuth((result) => {
       if (result.gsiUnavailable) {
-        errorEl.style.display = '';
-        errorEl.textContent   = "⚠ Не вдалося завантажити Google Sign-In. Перевірте з'єднання.";
+        showError("⚠ Не вдалося завантажити Google Sign-In. Перевірте з'єднання.");
         return;
       }
       if (result.needsButton) {
@@ -63,7 +105,7 @@ export function renderLoginScreen() {
         showAccessDenied(result.userInfo);
         return;
       }
-      // Authenticated and allowed — proceed
+      // Authenticated and allowed — resolve without showing any UI
       resolve();
     });
   });

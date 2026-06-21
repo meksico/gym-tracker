@@ -4,9 +4,8 @@ import { cacheRecentWeights } from './store/recentWeightStore.js';
 import { getPlan as fetchPlan, getRecentWeights as fetchRecentWeights } from './api/sheets.js';
 import { renderHome } from './ui/home.js';
 import { renderSettings } from './ui/settings.js';
-import { renderLoginScreen } from './ui/loginScreen.js';
+import { ensureAuth } from './ui/loginScreen.js';
 import { getCurrentDay } from './lib/day.js';
-import { isAuthenticated } from './config.js';
 import { startSyncEngine } from './sync/syncEngine.js';
 import { getCurrentRoute } from './router.js';
 
@@ -47,10 +46,7 @@ async function loadAndRenderHome() {
   }
 }
 
-async function route() {
-  if (!isAuthenticated()) {
-    await renderLoginScreen();
-  }
+async function routeContent() {
   const hash = getCurrentRoute();
   if (hash === '#settings') {
     await renderSettings();
@@ -62,9 +58,14 @@ async function route() {
 async function init() {
   await registerSW();
   await openDb();
+
+  // Always run auth init: restores access token into memory for returning users,
+  // or shows the sign-in screen for new ones. Resolves only when auth succeeds.
+  await ensureAuth();
+
   startSyncEngine();
-  window.addEventListener('hashchange', () => route());
-  await route();
+  window.addEventListener('hashchange', () => routeContent());
+  await routeContent();
 }
 
 init().catch((err) => {
