@@ -19,7 +19,10 @@ export const SHEET_ID         = '1lr7ZHvzGa03ZA10ys5xX_p6SRNAYmtbvfkU2_LRG1Ps';
 
 // Allowlist by stable Google user ID (sub).
 // To find your sub: sign in → if access is denied, your sub is shown on screen.
-export const ALLOWED_USER_IDS = [];
+export const ALLOWED_USER_IDS = [
+  '113596556075544506278',
+  '106560227422266150243'
+];
 
 export function isConfigured() {
   return Boolean(isAuthenticated());
