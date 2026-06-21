@@ -1,12 +1,11 @@
 import { getQueue, removeFromQueue } from '../store/queueStore.js';
-import { postLog, patchLog, getRecentWeights } from '../api/gas.js';
+import { appendLog, updateLog, getRecentWeights } from '../api/sheets.js';
 import { cacheRecentWeights } from '../store/recentWeightStore.js';
-import { isDemoMode } from '../config.js';
 
 let draining = false;
 
 export async function drainQueue() {
-  if (draining || isDemoMode() || !navigator.onLine) return;
+  if (draining || !navigator.onLine) return;
   draining = true;
   try {
     const queue = await getQueue();
@@ -14,9 +13,9 @@ export async function drainQueue() {
     for (const op of queue) {
       try {
         if (op.type === 'POST') {
-          await postLog(op.payload);
+          await appendLog(op.payload);
         } else if (op.type === 'PATCH') {
-          await patchLog(op.uuid, op.payload);
+          await updateLog(op.uuid, op.payload);
         }
         await removeFromQueue(op.id);
         synced++;
@@ -25,7 +24,6 @@ export async function drainQueue() {
         break;
       }
     }
-    // Refresh recent-weight cache so pre-fill reflects latest data
     if (synced > 0) {
       try {
         const weights = await getRecentWeights();

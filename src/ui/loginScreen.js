@@ -1,85 +1,70 @@
-import { GOOGLE_CLIENT_ID, ALLOWED_EMAILS, setGoogleUser } from '../config.js';
+import { initAuth, signIn } from '../auth/auth.js';
 
-export async function renderLoginScreen() {
-  const app = document.getElementById('app');
-  app.innerHTML = '';
+export function renderLoginScreen() {
+  return new Promise((resolve) => {
+    const app = document.getElementById('app');
+    app.innerHTML = '';
 
-  const screen = document.createElement('div');
-  screen.className = 'setup-screen';
+    const screen = document.createElement('div');
+    screen.className = 'setup-screen';
 
-  const card = document.createElement('div');
-  card.className = 'setup-card';
+    const card = document.createElement('div');
+    card.className = 'setup-card';
 
-  const icon = document.createElement('div');
-  icon.className = 'setup-card__icon';
-  icon.textContent = '💪';
+    const icon = document.createElement('div');
+    icon.className = 'setup-card__icon';
+    icon.textContent = '💪';
 
-  const title = document.createElement('h2');
-  title.textContent = 'Gym Logs';
+    const title = document.createElement('h2');
+    title.textContent = 'Gym Logs';
 
-  const desc = document.createElement('p');
-  desc.textContent = "Увійдіть через Google щоб продовжити";
+    const desc = document.createElement('p');
+    desc.textContent = 'Увійдіть через Google щоб продовжити';
 
-  const btnContainer = document.createElement('div');
-  btnContainer.id = 'google-signin-btn';
-  btnContainer.style.cssText = 'display:flex;justify-content:center;min-height:44px';
+    const btnContainer = document.createElement('div');
+    btnContainer.style.cssText = 'display:flex;justify-content:center;min-height:44px;margin-top:8px';
 
-  const errorEl = document.createElement('p');
-  errorEl.className = 'settings-status settings-status--error';
-  errorEl.style.display = 'none';
+    const errorEl = document.createElement('p');
+    errorEl.className = 'settings-status settings-status--error';
+    errorEl.style.display = 'none';
 
-  card.append(icon, title, desc, btnContainer, errorEl);
-  screen.appendChild(card);
-  app.appendChild(screen);
+    card.append(icon, title, desc, btnContainer, errorEl);
+    screen.appendChild(card);
+    app.appendChild(screen);
 
-  await waitForGis();
+    function showSignInButton() {
+      btnContainer.innerHTML = '';
+      const btn = document.createElement('button');
+      btn.className = 'btn btn--primary';
+      btn.textContent = 'Увійти через Google';
+      btn.addEventListener('click', () => signIn());
+      btnContainer.appendChild(btn);
+    }
 
-  if (!window.google?.accounts?.id) {
-    errorEl.style.display = '';
-    errorEl.textContent = "⚠ Не вдалося завантажити Google Sign-In. Перевірте з'єднання.";
-    return;
-  }
+    function showAccessDenied(userInfo) {
+      btnContainer.innerHTML = '';
+      errorEl.style.display  = '';
+      errorEl.innerHTML = `⛔ Доступ заборонено для <strong>${userInfo.email}</strong>.<br>
+        Надішліть свій ID адміністратору:<br>
+        <code style="user-select:all;word-break:break-all">${userInfo.sub}</code>`;
+    }
 
-  window.google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: (response) => {
-      const payload = decodeJwt(response.credential);
-      if (!ALLOWED_EMAILS.includes(payload.email)) {
+    initAuth((result) => {
+      if (result.gsiUnavailable) {
         errorEl.style.display = '';
-        errorEl.textContent = `⛔ Доступ заборонено для ${payload.email}`;
-        window.google.accounts.id.disableAutoSelect();
+        errorEl.textContent   = "⚠ Не вдалося завантажити Google Sign-In. Перевірте з'єднання.";
         return;
       }
-      setGoogleUser({ email: payload.email, name: payload.name, picture: payload.picture });
-      window.dispatchEvent(new Event('hashchange'));
-    },
-    auto_select: true,
-  });
-
-  window.google.accounts.id.renderButton(btnContainer, {
-    theme: 'outline',
-    size: 'large',
-    width: 280,
-    locale: 'uk',
-  });
-
-  window.google.accounts.id.prompt();
-}
-
-function waitForGis() {
-  if (window.google?.accounts?.id) return Promise.resolve();
-  return new Promise((resolve) => {
-    const timer = setInterval(() => {
-      if (window.google?.accounts?.id) {
-        clearInterval(timer);
-        resolve();
+      if (result.needsButton) {
+        showSignInButton();
+        return;
       }
-    }, 100);
-    setTimeout(() => { clearInterval(timer); resolve(); }, 5000);
+      if (!result.allowed) {
+        showAccessDenied(result.userInfo);
+        return;
+      }
+      // Authenticated and allowed — proceed
+      resolve();
+    });
   });
-}
-
-function decodeJwt(token) {
-  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  return JSON.parse(atob(base64));
 }

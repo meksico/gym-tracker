@@ -1,15 +1,14 @@
 import { openDb } from './store/db.js';
 import { getPlan, cachePlan } from './store/planStore.js';
 import { cacheRecentWeights } from './store/recentWeightStore.js';
-import { getPlan as fetchPlan, getRecentWeights as fetchRecentWeights } from './api/gas.js';
-import { DEMO_PLAN, DEMO_RECENT_WEIGHTS } from './api/demoData.js';
+import { getPlan as fetchPlan, getRecentWeights as fetchRecentWeights } from './api/sheets.js';
 import { renderHome } from './ui/home.js';
 import { renderSettings } from './ui/settings.js';
+import { renderLoginScreen } from './ui/loginScreen.js';
 import { getCurrentDay } from './lib/day.js';
-import { isDemoMode, isConfigured, isAuthenticated } from './config.js';
+import { isAuthenticated } from './config.js';
 import { startSyncEngine } from './sync/syncEngine.js';
 import { getCurrentRoute } from './router.js';
-import { renderLoginScreen } from './ui/loginScreen.js';
 
 async function registerSW() {
   if ('serviceWorker' in navigator) {
@@ -23,18 +22,6 @@ async function registerSW() {
 
 async function loadAndRenderHome() {
   const app = document.getElementById('app');
-
-  if (isDemoMode()) {
-    await cachePlan(DEMO_PLAN);
-    await cacheRecentWeights(DEMO_RECENT_WEIGHTS);
-    await renderHome(getCurrentDay());
-    return;
-  }
-
-  if (!isConfigured()) {
-    await renderSettings();
-    return;
-  }
 
   if (navigator.onLine) {
     try {
@@ -61,9 +48,8 @@ async function loadAndRenderHome() {
 }
 
 async function route() {
-  if (!isAuthenticated() && !isDemoMode()) {
+  if (!isAuthenticated()) {
     await renderLoginScreen();
-    return;
   }
   const hash = getCurrentRoute();
   if (hash === '#settings') {
