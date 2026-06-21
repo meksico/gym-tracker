@@ -18,27 +18,34 @@ export async function renderHome(day) {
   app.innerHTML = '';
 
   // ── App bar ──
-  const bar = h('header', { class: 'appbar' },
-    icon('barbell', { size: 26 }),
-    h('div', { style: 'flex:1;min-width:0' },
-      h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);letter-spacing:.02em' }, "GYM_LOGS"),
-      h('div', { class: 'tp7-label', style: 'margin-top:3px' }, "ЖУРНАЛ ТРЕНУВАНЬ")),
-    ui.iconButton('gear', { label: "Налаштування", onClick: () => navigate('#settings') }));
-  app.appendChild(bar);
+  app.appendChild(
+    h('header', { class: 'appbar' },
+      icon('barbell', { size: 26 }),
+      h('div', { style: 'flex:1;min-width:0' },
+        h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);letter-spacing:.02em' }, "GYM_LOGS"),
+        h('div', { class: 'tp7-label', style: 'margin-top:3px' }, "ЖУРНАЛ ТРЕНУВАНЬ")),
+      ui.iconButton('gear', { label: "Налаштування", onClick: () => navigate('#settings') })));
 
   // ── Sync error banner ──
   const syncBanner = document.createElement('div');
   syncBanner.id = 'sync-error-banner';
-
   function showSyncError(msg) {
     syncBanner.style.display = 'block';
     syncBanner.textContent = "⚠ Помилка синхронізації: " + msg;
   }
-
   const { lastError } = getSyncStatus();
   if (lastError) showSyncError(lastError);
   window.addEventListener('sync-error', (e) => showSyncError(e.detail), { once: false });
   app.appendChild(syncBanner);
+
+  // ── Day selector — sticky bar below header ──
+  const dayItems = getTrainingDays().map((d) => ({ value: d, label: DAY_LABELS[d] || d }));
+  app.appendChild(
+    h('div', {
+      style: 'flex:none;padding:10px 16px;background:var(--bg-primary);' +
+             'border-bottom:1px solid var(--border-hairline);box-shadow:0 1px 0 rgba(255,255,255,.6)',
+    },
+      ui.segmented(dayItems, selectedDay, (v) => renderHome(v))));
 
   // ── Load data ──
   const [plan, starCounts, todayLogs] = await Promise.all([
@@ -56,25 +63,19 @@ export async function renderHome(day) {
   const scroll = h('div', { class: 'screen-scroll' });
 
   // Session deck (dark card + tape reel)
-  const deck = h('div', { class: 'tp7-card tp7-card--screen', style: 'border-radius:var(--radius-lg);padding:16px' },
-    h('div', { style: 'display:flex;align-items:center;gap:18px' },
-      ui.tapeReel(total ? done / total : 0, { size: 96, label: `${done}/${total}`, spinning: done > 0 }),
-      h('div', { style: 'display:flex;flex-direction:column;gap:16px;flex:1' },
-        h('div', {},
-          h('div', { class: 'tp7-readout__caption' }, "СЕСІЯ · СЬОГОДНІ"),
-          h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);color:var(--grey-50)' },
-            selectedDay.toUpperCase())),
-        h('div', { style: 'display:flex;gap:22px' },
-          ui.litValue("ВПРАВ", `${done}/${total}`),
-          ui.litValue("ОБ’ЄМ СЕСІЇ",
-            sessionVolume.toLocaleString('en-US').replace(/,/g, ' '), "КГ")))));
-  scroll.appendChild(deck);
-
-  // Day selector
-  scroll.appendChild(h('div', { style: 'margin:22px 2px 4px' }, ui.eyebrow("ДЕНЬ")));
-
-  const dayItems = getTrainingDays().map((d) => ({ value: d, label: DAY_LABELS[d] || d }));
-  scroll.appendChild(ui.segmented(dayItems, selectedDay, (v) => renderHome(v)));
+  scroll.appendChild(
+    h('div', { class: 'tp7-card tp7-card--screen', style: 'border-radius:var(--radius-lg);padding:16px' },
+      h('div', { style: 'display:flex;align-items:center;gap:18px' },
+        ui.tapeReel(total ? done / total : 0, { size: 96, label: `${done}/${total}`, spinning: done > 0 }),
+        h('div', { style: 'display:flex;flex-direction:column;gap:16px;flex:1' },
+          h('div', {},
+            h('div', { class: 'tp7-readout__caption' }, "СЕСІЯ · СЬОГОДНІ"),
+            h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);color:var(--grey-50)' },
+              selectedDay.toUpperCase())),
+          h('div', { style: 'display:flex;gap:22px' },
+            ui.litValue("ВПРАВ", `${done}/${total}`),
+            ui.litValue("ОБʼЄМ СЕСІЯ",
+              sessionVolume.toLocaleString('en-US').replace(/,/g, ' '), "КГ"))))));
 
   // Exercise list
   const list = h('div', { style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
@@ -92,27 +93,27 @@ export async function renderHome(day) {
       const complete = logCount >= ex.sets;
       const effort = Math.min(3, logCount);
 
-      const row = h('div', { class: 'tp7-row', style: 'padding:13px 14px', onclick: () => renderExerciseModal(ex) },
-        h('div', { style: 'display:flex;gap:12px' },
-          h('span', { class: 'tp7-mono', style: 'font-size:var(--text-sm);color:var(--text-tertiary);padding-top:1px;min-width:22px' },
-            String(i + 1).padStart(2, '0')),
-          h('div', { style: 'flex:1;min-width:0' },
-            h('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:10px' },
-              h('div', { style: 'flex:1;min-width:0;font:var(--weight-semibold) var(--text-md)/1.2 var(--font-sans);text-wrap:pretty' }, ex.name),
-              ui.groupTag(ex.group)),
-            h('div', { style: 'display:flex;align-items:center;gap:14px;margin-top:11px' },
-              ui.effortMeter(effort),
-              h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-secondary)' },
-                `${ex.sets}×${ex.minReps}–${ex.maxReps}`),
-              h('div', { style: 'flex:1' }),
-              logCount > 0
-                ? (complete
-                    ? ui.badge("ЗАПИСАНО", { variant: 'solid' })
-                    : h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:700;color:var(--text-tertiary)' },
-                        `${logCount}/${ex.sets}`))
-                : null,
-              icon('chevR', { size: 16 })))));
-      list.appendChild(row);
+      list.appendChild(
+        h('div', { class: 'tp7-row', style: 'padding:13px 14px', onclick: () => renderExerciseModal(ex) },
+          h('div', { style: 'display:flex;gap:12px' },
+            h('span', { class: 'tp7-mono', style: 'font-size:var(--text-sm);color:var(--text-tertiary);padding-top:1px;min-width:22px' },
+              String(i + 1).padStart(2, '0')),
+            h('div', { style: 'flex:1;min-width:0' },
+              h('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:10px' },
+                h('div', { style: 'flex:1;min-width:0;font:var(--weight-semibold) var(--text-md)/1.2 var(--font-sans);text-wrap:pretty' }, ex.name),
+                ui.groupTag(ex.group)),
+              h('div', { style: 'display:flex;align-items:center;gap:14px;margin-top:11px' },
+                ui.effortMeter(effort),
+                h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-secondary)' },
+                  `${ex.sets}×${ex.minReps}–${ex.maxReps}`),
+                h('div', { style: 'flex:1' }),
+                logCount > 0
+                  ? (complete
+                      ? ui.badge("ЗАПИСАНО", { variant: 'solid' })
+                      : h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:700;color:var(--text-tertiary)' },
+                          `${logCount}/${ex.sets}`))
+                  : null,
+                icon('chevR', { size: 16 }))))));
     });
   }
 
