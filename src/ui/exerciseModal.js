@@ -194,6 +194,17 @@ export async function renderExerciseModal(exercise) {
   rebuildSteppers();
   dock.appendChild(stepRow);
 
+  // Record key (declared early so refreshVol can reference it)
+  const saveBtn = ui.button("ЗАПИСАТИ СЕТ", {
+    variant: 'critical', size: 'lg', block: true,
+    startIcon: icon('record', { size: 13 }),
+  });
+
+  // Cancel button (edit mode only)
+  const cancelBtn = ui.button("СКАСУВАТИ", { variant: 'routine', block: true });
+  cancelBtn.style.display = 'none';
+  cancelBtn.addEventListener('click', exitEditMode);
+
   // Volume readout
   const volNumEl = h('span', { class: 'tp7-mono', style: 'font-size:var(--text-md);font-weight:700;color:var(--text-primary)' });
   dock.appendChild(
@@ -207,17 +218,6 @@ export async function renderExerciseModal(exercise) {
     saveBtn.disabled = weight <= 0;
   }
   refreshVol();
-
-  // Record key (THE orange action — one per view)
-  const saveBtn = ui.button("ЗАПИСАТИ СЕТ", {
-    variant: 'critical', size: 'lg', block: true,
-    startIcon: icon('record', { size: 13 }),
-  });
-
-  // Cancel button (edit mode only)
-  const cancelBtn = ui.button("СКАСУВАТИ", { variant: 'routine', block: true });
-  cancelBtn.style.display = 'none';
-  cancelBtn.addEventListener('click', exitEditMode);
 
   dock.append(saveBtn, cancelBtn);
   detailWrap.appendChild(dock);
