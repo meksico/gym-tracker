@@ -59,7 +59,7 @@ export async function getRecentWeights() {
 export async function appendLog(entry) {
   const range = 'Logs!A2:E';
   const res = await fetch(
-    `${BASE}/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`,
+    `${BASE}/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
     {
       method:  'POST',
       headers: authHeaders(),
@@ -74,7 +74,10 @@ export async function appendLog(entry) {
       }),
     },
   );
-  if (!res.ok) throw new Error(`Sheets append failed (HTTP ${res.status})`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Sheets append failed (HTTP ${res.status}): ${body}`);
+  }
   const result = await res.json();
   // Return the 1-based sheet row so callers can store it for future updates
   const match = result.updates?.updatedRange?.match(/!A(\d+):/);

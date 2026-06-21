@@ -2,13 +2,20 @@ import { getQueue, removeFromQueue } from '../store/queueStore.js';
 import { appendLog, updateLog, getRecentWeights } from '../api/sheets.js';
 import { cacheRecentWeights } from '../store/recentWeightStore.js';
 
-let draining = false;
+let draining  = false;
+let lastError = null;
+let pendingCount = 0;
+
+export function getSyncStatus() {
+  return { lastError, pendingCount };
+}
 
 export async function drainQueue() {
   if (draining || !navigator.onLine) return;
   draining = true;
   try {
     const queue = await getQueue();
+    pendingCount = queue.length;
     let synced = 0;
     for (const op of queue) {
       try {
@@ -19,8 +26,12 @@ export async function drainQueue() {
         }
         await removeFromQueue(op.id);
         synced++;
+        pendingCount--;
+        lastError = null;
       } catch (err) {
-        console.warn(`Sync: op ${op.id} failed, will retry on next drain:`, err.message);
+        lastError = err.message;
+        console.error(`Sync: op ${op.id} failed:`, err.message);
+        window.dispatchEvent(new CustomEvent('sync-error', { detail: err.message }));
         break;
       }
     }

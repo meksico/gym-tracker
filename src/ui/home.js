@@ -5,6 +5,7 @@ import { chipEl, exerciseCardEl, appHeaderEl, emptyStateEl } from './components.
 import { renderExerciseModal } from './exerciseModal.js';
 import { navigate } from '../router.js';
 import { getGoogleUser } from '../config.js';
+import { getSyncStatus } from '../sync/syncEngine.js';
 
 let selectedDay = null;
 let dayPickerVisible = false;
@@ -17,6 +18,22 @@ export async function renderHome(day) {
   app.innerHTML = '';
 
   app.appendChild(appHeaderEl({ onSettingsClick: () => navigate('#settings'), user: getGoogleUser() }));
+
+  // Sync error banner — shown when a write to Sheets fails
+  const syncBanner = document.createElement('div');
+  syncBanner.id = 'sync-error-banner';
+  syncBanner.style.cssText = 'display:none;background:#fce8e6;color:#c5221f;padding:8px 16px;font-size:13px;line-height:1.4';
+
+  function showSyncError(msg) {
+    syncBanner.style.display = 'block';
+    syncBanner.textContent = `⚠ Помилка синхронізації: ${msg}`;
+  }
+
+  const { lastError } = getSyncStatus();
+  if (lastError) showSyncError(lastError);
+
+  window.addEventListener('sync-error', (e) => showSyncError(e.detail), { once: false });
+  app.appendChild(syncBanner);
 
   const main = document.createElement('main');
   main.className = 'main';
