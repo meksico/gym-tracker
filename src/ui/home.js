@@ -1,14 +1,14 @@
+import { h, icon, ui } from './tp7-ui.js';
 import { getPlan } from '../store/planStore.js';
-import { getStarCounts } from '../store/logStore.js';
+import { getStarCounts, getTodayLogs } from '../store/logStore.js';
 import { getCurrentDay, getTrainingDays } from '../lib/day.js';
-import { chipEl, exerciseCardEl, appHeaderEl, emptyStateEl } from './components.js';
 import { renderExerciseModal } from './exerciseModal.js';
 import { navigate } from '../router.js';
-import { getGoogleUser } from '../config.js';
 import { getSyncStatus } from '../sync/syncEngine.js';
 
+const DAY_LABELS = { Monday: "ПН", Wednesday: "СР", Friday: "ПТ" };
+
 let selectedDay = null;
-let dayPickerVisible = false;
 
 export async function renderHome(day) {
   if (day) selectedDay = day;
@@ -17,106 +17,105 @@ export async function renderHome(day) {
   const app = document.getElementById('app');
   app.innerHTML = '';
 
-  app.appendChild(appHeaderEl({ onSettingsClick: () => navigate('#settings'), user: getGoogleUser() }));
+  // ── App bar ──
+  const bar = h('header', { class: 'appbar' },
+    icon('barbell', { size: 26 }),
+    h('div', { style: 'flex:1;min-width:0' },
+      h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);letter-spacing:.02em' }, "GYM_LOGS"),
+      h('div', { class: 'tp7-label', style: 'margin-top:3px' }, "ЖУРНАЛ ТРЕНУВАНЬ")),
+    ui.iconButton('gear', { label: "Налаштування", onClick: () => navigate('#settings') }));
+  app.appendChild(bar);
 
-  // Sync error banner — shown when a write to Sheets fails
+  // ── Sync error banner ──
   const syncBanner = document.createElement('div');
   syncBanner.id = 'sync-error-banner';
-  syncBanner.style.cssText = 'display:none;background:#fce8e6;color:#c5221f;padding:8px 16px;font-size:13px;line-height:1.4';
 
   function showSyncError(msg) {
     syncBanner.style.display = 'block';
-    syncBanner.textContent = `⚠ Помилка синхронізації: ${msg}`;
+    syncBanner.textContent = "⚠ Помилка синхронізації: " + msg;
   }
 
   const { lastError } = getSyncStatus();
   if (lastError) showSyncError(lastError);
-
   window.addEventListener('sync-error', (e) => showSyncError(e.detail), { once: false });
   app.appendChild(syncBanner);
 
-  const main = document.createElement('main');
-  main.className = 'main';
+  // ── Load data ──
+  const [plan, starCounts, todayLogs] = await Promise.all([
+    getPlan(),
+    getStarCounts(),
+    getTodayLogs(),
+  ]);
 
-  // Section label + "Change day" toggle
-  const sectionRow = document.createElement('div');
-  sectionRow.className = 'section-row';
-
-  const sectionLabel = document.createElement('span');
-  sectionLabel.className = 'section-label';
-  sectionLabel.textContent = 'ПЛАН НА СЬОГОДНІ';
-
-  const changeDayBtn = document.createElement('button');
-  changeDayBtn.className = 'btn-link';
-  changeDayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Змінити день`;
-  changeDayBtn.addEventListener('click', () => {
-    dayPickerVisible = !dayPickerVisible;
-    dayPickerEl.style.display = dayPickerVisible ? 'flex' : 'none';
-  });
-
-  sectionRow.appendChild(sectionLabel);
-  sectionRow.appendChild(changeDayBtn);
-  main.appendChild(sectionRow);
-
-  // Day picker chips
-  const dayPickerEl = document.createElement('div');
-  dayPickerEl.className = 'day-picker';
-  dayPickerEl.style.display = dayPickerVisible ? 'flex' : 'none';
-
-  for (const trainingDay of getTrainingDays()) {
-    const chip = chipEl(trainingDay, trainingDay === selectedDay, () => {
-      dayPickerVisible = false;
-      renderHome(trainingDay);
-    });
-    dayPickerEl.appendChild(chip);
-  }
-  main.appendChild(dayPickerEl);
-
-  // Day summary card
-  const [plan, starCounts] = await Promise.all([getPlan(), getStarCounts()]);
   const dayExercises = plan.filter((ex) => ex.day === selectedDay);
+  const done = dayExercises.filter((ex) => (starCounts[ex.name] || 0) >= ex.sets).length;
+  const total = dayExercises.length;
+  const sessionVolume = todayLogs.reduce((sum, log) => sum + log.weight * log.reps, 0);
 
-  const daySummary = document.createElement('div');
-  daySummary.className = 'day-summary';
+  // ── Scrollable body ──
+  const scroll = h('div', { class: 'screen-scroll' });
 
-  const iconWrap = document.createElement('div');
-  iconWrap.className = 'day-summary__icon';
-  iconWrap.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16M18 4v16M2 12h20M2 6h4M18 6h4M2 18h4M18 18h4"/></svg>`;
+  // Session deck (dark card + tape reel)
+  const deck = h('div', { class: 'tp7-card tp7-card--screen', style: 'border-radius:var(--radius-lg);padding:16px' },
+    h('div', { style: 'display:flex;align-items:center;gap:18px' },
+      ui.tapeReel(total ? done / total : 0, { size: 96, label: `${done}/${total}`, spinning: done > 0 }),
+      h('div', { style: 'display:flex;flex-direction:column;gap:16px;flex:1' },
+        h('div', {},
+          h('div', { class: 'tp7-readout__caption' }, "СЕСІЯ · СЬОГОДНІ"),
+          h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);color:var(--grey-50)' },
+            selectedDay.toUpperCase())),
+        h('div', { style: 'display:flex;gap:22px' },
+          ui.litValue("ВПРАВ", `${done}/${total}`),
+          ui.litValue("ОБ’ЄМ СЕСІЇ",
+            sessionVolume.toLocaleString('en-US').replace(/,/g, ' '), "КГ")))));
+  scroll.appendChild(deck);
 
-  const dayInfo = document.createElement('div');
-  dayInfo.className = 'day-summary__info';
+  // Day selector
+  scroll.appendChild(h('div', { style: 'margin:22px 2px 4px' }, ui.eyebrow("ДЕНЬ")));
 
-  const dayName = document.createElement('strong');
-  dayName.textContent = selectedDay;
-
-  const dayCount = document.createElement('span');
-  dayCount.textContent = `${dayExercises.length} вправ`;
-
-  dayInfo.appendChild(dayName);
-  dayInfo.appendChild(dayCount);
-  daySummary.appendChild(iconWrap);
-  daySummary.appendChild(dayInfo);
-  main.appendChild(daySummary);
+  const dayItems = getTrainingDays().map((d) => ({ value: d, label: DAY_LABELS[d] || d }));
+  scroll.appendChild(ui.segmented(dayItems, selectedDay, (v) => renderHome(v)));
 
   // Exercise list
-  const listEl = document.createElement('div');
-  listEl.className = 'exercise-list';
+  const list = h('div', { style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
 
   if (dayExercises.length === 0) {
-    listEl.appendChild(
-      emptyStateEl('Немає вправ. Підключіться до інтернету для першого завантаження.')
-    );
+    list.appendChild(
+      h('div', { class: 'tp7-card tp7-card--sunken', style: 'text-align:center;padding:22px 18px' },
+        h('div', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px' },
+          "НЕМАЄ ВПРАВ"),
+        h('div', { style: 'font:var(--weight-regular) var(--text-sm)/1.4 var(--font-sans);color:var(--text-tertiary)' },
+          "Підключіться до інтернету для першого завантаження.")));
   } else {
-    for (const exercise of dayExercises) {
-      const card = exerciseCardEl({
-        ...exercise,
-        starCount: starCounts[exercise.name] || 0,
-        onClick: () => renderExerciseModal(exercise),
-      });
-      listEl.appendChild(card);
-    }
+    dayExercises.forEach((ex, i) => {
+      const logCount = starCounts[ex.name] || 0;
+      const complete = logCount >= ex.sets;
+      const effort = Math.min(3, logCount);
+
+      const row = h('div', { class: 'tp7-row', style: 'padding:13px 14px', onclick: () => renderExerciseModal(ex) },
+        h('div', { style: 'display:flex;gap:12px' },
+          h('span', { class: 'tp7-mono', style: 'font-size:var(--text-sm);color:var(--text-tertiary);padding-top:1px;min-width:22px' },
+            String(i + 1).padStart(2, '0')),
+          h('div', { style: 'flex:1;min-width:0' },
+            h('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:10px' },
+              h('div', { style: 'flex:1;min-width:0;font:var(--weight-semibold) var(--text-md)/1.2 var(--font-sans);text-wrap:pretty' }, ex.name),
+              ui.groupTag(ex.group)),
+            h('div', { style: 'display:flex;align-items:center;gap:14px;margin-top:11px' },
+              ui.effortMeter(effort),
+              h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-secondary)' },
+                `${ex.sets}×${ex.minReps}–${ex.maxReps}`),
+              h('div', { style: 'flex:1' }),
+              logCount > 0
+                ? (complete
+                    ? ui.badge("ЗАПИСАНО", { variant: 'solid' })
+                    : h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:700;color:var(--text-tertiary)' },
+                        `${logCount}/${ex.sets}`))
+                : null,
+              icon('chevR', { size: 16 })))));
+      list.appendChild(row);
+    });
   }
 
-  main.appendChild(listEl);
-  app.appendChild(main);
+  scroll.appendChild(list);
+  app.appendChild(scroll);
 }

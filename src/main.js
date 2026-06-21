@@ -38,8 +38,8 @@ async function loadAndRenderHome() {
   } else {
     app.innerHTML = `
       <div class="setup-screen">
-        <div class="setup-card">
-          <p>Немає кешованих даних. Підключіться до інтернету для першого завантаження.</p>
+        <div class="tp7-card" style="text-align:center;padding:32px 24px;width:100%">
+          <p style="font:var(--type-body);color:var(--text-secondary)">Немає кешованих даних. Підключіться до інтернету для першого завантаження.</p>
         </div>
       </div>
     `;
@@ -71,5 +71,5 @@ async function init() {
 init().catch((err) => {
   console.error('Init failed:', err);
   document.getElementById('app').innerHTML =
-    `<div class="setup-screen"><div class="setup-card"><p>Помилка запуску: ${err.message}</p></div></div>`;
+    `<div class="setup-screen"><div class="tp7-card" style="text-align:center;padding:32px 24px;width:100%"><p style="font:var(--type-body);color:var(--orange-500)">Помилка запуску: ${err.message}</p></div></div>`;
 });

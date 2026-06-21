@@ -1,57 +1,38 @@
+import { h, icon } from './tp7-ui.js';
+
 export function doneTodayEl(logs, { selectedUuid, onSetClick } = {}) {
-  const section = document.createElement('div');
-  section.className = 'done-today';
-
-  const label = document.createElement('p');
-  label.className = 'done-today__label';
-  label.textContent = 'Виконано сьогодні';
-  section.appendChild(label);
-
   if (logs.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'done-today__empty';
-    empty.textContent = 'Ще немає записів';
-    section.appendChild(empty);
-    return section;
+    return h('div', { class: 'tp7-card tp7-card--sunken', style: 'text-align:center;padding:22px 18px' },
+      h('div', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px' },
+        "ЩЕ НЕМАЄ ЗАПИСІВ"),
+      h('div', { style: 'font:var(--weight-regular) var(--text-sm)/1.4 var(--font-sans);color:var(--text-tertiary)' },
+        "Озбройте лічильник і натисніть оранжеву клавішу."));
   }
 
-  const list = document.createElement('div');
-  list.className = 'done-today__list';
+  return h('div', { style: 'display:flex;flex-direction:column;gap:7px' },
+    ...logs.map((log, i) => {
+      const isSelected = log.uuid === selectedUuid;
+      const vol = Math.round(log.weight * log.reps);
+      const row = h('div', {
+        style: [
+          'display:flex;align-items:center;gap:12px;padding:11px 14px;',
+          'background:var(--bg-sunken);border:1px solid var(--border-channel);',
+          'box-shadow:var(--shadow-inset);border-radius:var(--radius-sm);',
+          onSetClick ? 'cursor:pointer;' : '',
+          isSelected ? 'border-color:var(--orange-500);outline:1.5px solid var(--orange-500);' : '',
+        ].join(''),
+      },
+        h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:700;letter-spacing:var(--tracking-wide);color:var(--text-tertiary);min-width:46px' },
+          `СЕТ ${i + 1}`),
+        h('span', { class: 'tp7-mono', style: 'font-size:var(--text-md);font-weight:600;flex:1' },
+          `${log.weight} кг × ${log.reps}`),
+        h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-tertiary)' },
+          `${vol} кг`),
+        icon(isSelected ? 'check' : 'pencil', { size: 15 }));
 
-  logs.forEach((log, i) => {
-    const row = document.createElement('div');
-    const isSelected = log.uuid === selectedUuid;
-    row.className = `done-today__row${onSetClick ? ' done-today__row--tappable' : ''}${isSelected ? ' done-today__row--editing' : ''}`;
-
-    if (onSetClick) {
-      row.addEventListener('click', () => onSetClick(log, i));
-    }
-
-    const volume = log.weight * log.reps;
-
-    const setNum = document.createElement('span');
-    setNum.className = 'done-today__set-num';
-    setNum.textContent = `Сет ${i + 1}`;
-
-    const values = document.createElement('span');
-    values.className = 'done-today__values';
-    values.textContent = `${log.weight} кг × ${log.reps}`;
-
-    const vol = document.createElement('span');
-    vol.className = 'done-today__volume';
-    vol.textContent = `${volume} кг`;
-
-    const editIcon = document.createElement('span');
-    editIcon.className = 'done-today__edit-icon';
-    editIcon.textContent = isSelected ? '✕' : '✎';
-
-    row.appendChild(setNum);
-    row.appendChild(values);
-    row.appendChild(vol);
-    row.appendChild(editIcon);
-    list.appendChild(row);
-  });
-
-  section.appendChild(list);
-  return section;
+      if (onSetClick) {
+        row.addEventListener('click', () => onSetClick(log, i));
+      }
+      return row;
+    }));
 }

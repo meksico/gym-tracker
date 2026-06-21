@@ -1,3 +1,4 @@
+import { h, icon, ui } from './tp7-ui.js';
 import { getLogsByExercise, saveLog, updateLog } from '../store/logStore.js';
 import { enqueuePost, enqueuePatch } from '../store/queueStore.js';
 import { getRecentWeightForExercise } from '../store/recentWeightStore.js';
@@ -5,7 +6,6 @@ import { drainQueue } from '../sync/syncEngine.js';
 import { doneTodayEl } from './doneToday.js';
 import { generateUuid } from '../lib/uuid.js';
 
-// Persists typed values across navigation within the session
 const inputCache = {};
 
 function todayStr() {
@@ -32,280 +32,264 @@ export async function renderExerciseModal(exercise) {
   const app = document.getElementById('app');
   app.innerHTML = '';
 
-  // ── Header ──
-  const header = document.createElement('header');
-  header.className = 'app-header';
+  // ── App bar ──
+  const bar = h('header', { class: 'appbar', style: 'align-items:flex-start;padding:12px 16px' },
+    ui.iconButton('back', { label: "Назад", onClick: () => renderHome() }),
+    h('div', { style: 'flex:1;min-width:0' },
+      h('div', { style: 'font:var(--weight-bold) var(--text-md)/1.15 var(--font-sans)' }, exercise.name),
+      h('div', { class: 'tp7-mono', style: 'margin-top:4px;font-size:var(--text-xs);color:var(--text-secondary)' },
+        `${exercise.group}${exercise.formula ? " · " + exercise.formula : ""}`)));
+  app.appendChild(bar);
 
-  const backBtn = document.createElement('button');
-  backBtn.className = 'btn-icon';
-  backBtn.setAttribute('aria-label', 'Назад');
-  backBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
-  backBtn.addEventListener('click', () => renderHome());
+  // ── Detail layout: scroll + pinned dock ──
+  const detailWrap = document.createElement('div');
+  detailWrap.className = 'main--modal';
 
-  const titleGroup = document.createElement('div');
-  titleGroup.className = 'app-header__titles';
-
-  const title = document.createElement('h1');
-  title.className = 'app-header__title';
-  title.textContent = exercise.name;
-
-  const subtitle = document.createElement('p');
-  subtitle.className = 'app-header__subtitle';
-  subtitle.textContent = `${exercise.group} · ${exercise.formula}`;
-
-  titleGroup.appendChild(title);
-  titleGroup.appendChild(subtitle);
-  header.appendChild(backBtn);
-  header.appendChild(titleGroup);
-  app.appendChild(header);
-
-  const main = document.createElement('main');
-  main.className = 'main main--modal';
-
-  // ── Scrollable area: YouTube + done-today ──
   const scrollArea = document.createElement('div');
   scrollArea.className = 'modal-scroll';
 
+  // YouTube technique button
   if (exercise.youtubeUrl) {
-    const ytSection = document.createElement('div');
-    ytSection.className = 'yt-section';
-
     const isOnline = navigator.onLine;
-    const ytToggle = document.createElement('button');
-    ytToggle.className = `yt-toggle${isOnline ? '' : ' yt-toggle--offline'}`;
-    ytToggle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> ${isOnline ? 'Переглянути техніку' : 'Відео недоступне офлайн'}`;
-    ytToggle.disabled = !isOnline;
-
-    let ytEmbed = null;
-    let ytVisible = false;
-
-    ytToggle.addEventListener('click', () => {
-      ytVisible = !ytVisible;
-      if (ytVisible && !ytEmbed) {
-        const videoId = extractYtId(exercise.youtubeUrl);
-        if (videoId) {
-          ytEmbed = document.createElement('iframe');
-          ytEmbed.className = 'yt-embed';
-          ytEmbed.src = `https://www.youtube.com/embed/${videoId}?playsinline=1`;
-          ytEmbed.setAttribute('allowfullscreen', '');
-          ytEmbed.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-          ytSection.appendChild(ytEmbed);
-        }
-      }
-      if (ytEmbed) ytEmbed.style.display = ytVisible ? 'block' : 'none';
-      ytToggle.textContent = ytVisible ? '▲ Закрити відео' : '▶ Переглянути техніку';
+    let videoOpen = false;
+    const videoPnl = h('div', {
+      style: 'display:none;margin-top:10px;aspect-ratio:16/9;border-radius:var(--radius-md);overflow:hidden;background:#000',
     });
 
-    ytSection.appendChild(ytToggle);
-    scrollArea.appendChild(ytSection);
+    const techBtn = ui.button(isOnline ? "ТЕХНІКА" : "ВІДЕО НЕДОСТУПНЕ ОФЛАЙН", {
+      size: 'lg', block: true,
+      startIcon: icon('play', { size: 13 }),
+    });
+    techBtn.style.justifyContent = 'flex-start';
+    techBtn.disabled = !isOnline;
+
+    if (isOnline) {
+      techBtn.addEventListener('click', () => {
+        videoOpen = !videoOpen;
+        if (videoOpen && !videoPnl.firstChild) {
+          const videoId = extractYtId(exercise.youtubeUrl);
+          if (videoId) {
+            const iframe = document.createElement('iframe');
+            iframe.className = 'yt-embed';
+            iframe.src = `https://www.youtube.com/embed/${videoId}?playsinline=1`;
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+            videoPnl.appendChild(iframe);
+          }
+        }
+        videoPnl.style.display = videoOpen ? 'block' : 'none';
+        techBtn.replaceChildren(
+          icon(videoOpen ? 'stop' : 'play', { size: 13 }),
+          document.createTextNode(videoOpen ? " ЗГОРНУТИ" : " ТЕХНІКА"));
+      });
+    }
+
+    scrollArea.appendChild(h('div', { class: 'yt-section' }, techBtn, videoPnl));
   }
 
-  // Fetch logs + recent weight in parallel — both used for pre-fill
+  // Load data
   const [logs_init, recentWeight] = await Promise.all([
     getLogsByExercise(exercise.name),
     getRecentWeightForExercise(exercise.name),
   ]);
   let logs = logs_init;
+  let editingUuid = null;
+
+  // "Logged today" header row
+  const logCountEl = h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:700;color:var(--text-tertiary)' });
+  function updateLogCount() {
+    logCountEl.textContent = `${logs.length}/${exercise.sets}`;
+  }
+  updateLogCount();
+
+  scrollArea.appendChild(
+    h('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px' },
+      ui.eyebrow("ВИКОНАНО СЬОГОДНІ"), logCountEl));
 
   const doneTodayWrap = document.createElement('div');
 
-  // ── Edit mode state ──
-  let editingUuid = null;
-
   function refreshDoneToday() {
-    doneTodayWrap.innerHTML = '';
-    doneTodayWrap.appendChild(
+    doneTodayWrap.replaceChildren(
       doneTodayEl(logs, {
         selectedUuid: editingUuid,
         onSetClick: (log, index) => {
-          if (editingUuid === log.uuid) {
-            exitEditMode();
-          } else {
-            enterEditMode(log, index);
-          }
+          if (editingUuid === log.uuid) exitEditMode();
+          else enterEditMode(log, index);
         },
-      })
-    );
+      }));
   }
-
   refreshDoneToday();
   scrollArea.appendChild(doneTodayWrap);
-  main.appendChild(scrollArea);
+  detailWrap.appendChild(scrollArea);
 
-  // ── Form (pinned to bottom) ──
-  const formCard = document.createElement('div');
-  formCard.className = 'log-form';
+  // ── Dock (pinned bottom) ──
+  const dock = document.createElement('div');
+  dock.className = 'log-form';
 
-  // Edit mode badge
+  // Edit mode indicator
   const editBadge = document.createElement('div');
   editBadge.className = 'edit-badge';
   editBadge.style.display = 'none';
-  formCard.appendChild(editBadge);
+  dock.appendChild(editBadge);
 
-  const weightLabel = document.createElement('label');
-  weightLabel.className = 'input-label';
-  weightLabel.textContent = 'Вага (кг)';
+  // Initial weight/reps from cache → today's last log → recent weight → plan default
+  const cached = inputCache[exercise.name];
+  const lastLog = logs[logs.length - 1];
+  let weight = +(cached?.weight ?? lastLog?.weight ?? recentWeight?.maxWeight ?? 0);
+  let reps   = +(cached?.reps   ?? lastLog?.reps   ?? exercise.maxReps ?? 12);
 
-  const weightInput = document.createElement('input');
-  weightInput.className = 'input-number';
-  weightInput.type = 'number';
-  weightInput.min = '0';
-  weightInput.step = '0.5';
-  weightInput.inputMode = 'decimal';
-  weightInput.placeholder = '0';
+  // Tape reel (progress indicator)
+  const reelWrap = h('div', { style: 'flex:none' });
+  function updateReel() {
+    reelWrap.replaceChildren(
+      ui.tapeReel(exercise.sets ? Math.min(1, logs.length / exercise.sets) : 0, {
+        size: 48, label: `${logs.length}/${exercise.sets}`, spinning: logs.length > 0,
+      }));
+  }
+  updateReel();
 
-  const repsLabel = document.createElement('label');
-  repsLabel.className = 'input-label';
-  repsLabel.textContent = 'Повторення';
-
-  const repsInput = document.createElement('input');
-  repsInput.className = 'input-number';
-  repsInput.type = 'number';
-  repsInput.min = '1';
-  repsInput.step = '1';
-  repsInput.inputMode = 'numeric';
-
-  const volumeEl = document.createElement('p');
-  volumeEl.className = 'volume-display';
-
-  function updateVolume() {
-    const w = parseFloat(weightInput.value) || 0;
-    const r = parseInt(repsInput.value, 10) || 0;
-    volumeEl.textContent = `Об'єм: ${w * r} кг`;
-    saveBtn.disabled = w <= 0;
-    // Only cache add-mode values, not edit-mode values
-    if (!editingUuid) {
-      inputCache[exercise.name] = { weight: weightInput.value, reps: repsInput.value };
+  // Recall button + reel row
+  const recallRow = h('div', { style: 'display:flex;align-items:center;gap:10px' });
+  function buildRecallRow() {
+    recallRow.replaceChildren();
+    if (recentWeight?.maxWeight) {
+      const recallBtn = h('button', { type: 'button',
+        style: 'appearance:none;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;height:34px;cursor:pointer;' +
+               'background:var(--bg-sunken);border:1px solid var(--border-channel);box-shadow:var(--shadow-inset);' +
+               'border-radius:var(--radius-sm);font:var(--weight-medium) var(--text-xs)/1 var(--font-mono);color:var(--text-secondary)' },
+        icon('ret', { size: 14 }),
+        h('b', { style: 'text-transform:uppercase;letter-spacing:var(--tracking-wide)' }, "ОСТАННІЙ: "),
+        document.createTextNode(`${recentWeight.maxWeight} кг × ${recentWeight.maxReps}`));
+      recallBtn.addEventListener('click', () => {
+        if (editingUuid) return;
+        weight = recentWeight.maxWeight;
+        reps   = recentWeight.maxReps;
+        inputCache[exercise.name] = { weight, reps };
+        rebuildSteppers();
+        refreshVol();
+      });
+      recallRow.append(recallBtn, reelWrap);
+    } else {
+      recallRow.appendChild(reelWrap);
     }
   }
+  buildRecallRow();
+  dock.appendChild(recallRow);
 
-  weightInput.addEventListener('input', updateVolume);
-  repsInput.addEventListener('input', updateVolume);
+  // Steppers row
+  const stepRow = h('div', { style: 'display:flex;gap:12px' });
+  function rebuildSteppers() {
+    stepRow.replaceChildren(
+      ui.stepper("ВАГА (КГ)", weight, { step: 2.5, min: 0, onChange: (v) => {
+        weight = v;
+        if (!editingUuid) inputCache[exercise.name] = { weight, reps };
+        refreshVol();
+      }}),
+      ui.stepper("ПОВТОРЕННЯ", reps, { step: 1, min: 1, onChange: (v) => {
+        reps = v;
+        if (!editingUuid) inputCache[exercise.name] = { weight, reps };
+        refreshVol();
+      }}));
+  }
+  rebuildSteppers();
+  dock.appendChild(stepRow);
 
-  const weightGroup = document.createElement('div');
-  weightGroup.className = 'input-group';
-  weightGroup.appendChild(weightLabel);
-  weightGroup.appendChild(weightInput);
+  // Volume readout
+  const volNumEl = h('span', { class: 'tp7-mono', style: 'font-size:var(--text-md);font-weight:700;color:var(--text-primary)' });
+  dock.appendChild(
+    h('div', { class: 'volume-display' },
+      h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-secondary)' },
+        "ОБʼЄМ"),
+      volNumEl));
 
-  const repsGroup = document.createElement('div');
-  repsGroup.className = 'input-group';
-  repsGroup.appendChild(repsLabel);
-  repsGroup.appendChild(repsInput);
+  function refreshVol() {
+    volNumEl.textContent = `${Math.round(weight * reps)} кг`;
+    saveBtn.disabled = weight <= 0;
+  }
+  refreshVol();
 
-  const inputRow = document.createElement('div');
-  inputRow.className = 'input-row';
-  inputRow.appendChild(weightGroup);
-  inputRow.appendChild(repsGroup);
+  // Record key (THE orange action — one per view)
+  const saveBtn = ui.button("ЗАПИСАТИ СЕТ", {
+    variant: 'critical', size: 'lg', block: true,
+    startIcon: icon('record', { size: 13 }),
+  });
 
-  const btnRow = document.createElement('div');
-  btnRow.className = 'btn-row';
-
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'btn btn--primary';
-  saveBtn.textContent = 'ЗБЕРЕГТИ';
-  saveBtn.disabled = true;
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'btn btn--ghost';
-  cancelBtn.textContent = 'СКАСУВАТИ';
+  // Cancel button (edit mode only)
+  const cancelBtn = ui.button("СКАСУВАТИ", { variant: 'routine', block: true });
   cancelBtn.style.display = 'none';
   cancelBtn.addEventListener('click', exitEditMode);
 
-  btnRow.appendChild(saveBtn);
-  btnRow.appendChild(cancelBtn);
-
-  formCard.appendChild(inputRow);
-  formCard.appendChild(volumeEl);
-  formCard.appendChild(btnRow);
-  main.appendChild(formCard);
-  app.appendChild(main);
-
-  // ── Set initial input values ──
-  // Priority: typed-this-session → logged today → recent weight pivot → plan default
-  const lastLog = logs[logs.length - 1];
-  const cached  = inputCache[exercise.name];
-  weightInput.value = String(cached?.weight ?? lastLog?.weight ?? recentWeight?.maxWeight ?? 0);
-  repsInput.value   = String(cached?.reps   ?? lastLog?.reps   ?? exercise.maxReps ?? 12);
-  updateVolume();
-
-  // "Use last result" button — visible only when recent weight data exists
-  if (recentWeight?.maxWeight) {
-    const lastResultBtn = document.createElement('button');
-    lastResultBtn.className = 'btn btn--ghost btn--sm';
-    lastResultBtn.textContent = `↩ Останній: ${recentWeight.maxWeight} кг × ${recentWeight.maxReps}`;
-    lastResultBtn.addEventListener('click', () => {
-      if (editingUuid) return; // don't overwrite during edit mode
-      weightInput.value = String(recentWeight.maxWeight);
-      repsInput.value   = String(recentWeight.maxReps);
-      updateVolume();
-      weightInput.focus();
-    });
-    formCard.insertBefore(lastResultBtn, inputRow);
-  }
-
-  weightInput.focus();
+  dock.append(saveBtn, cancelBtn);
+  detailWrap.appendChild(dock);
+  app.appendChild(detailWrap);
 
   // ── Edit mode helpers ──
   function enterEditMode(log, index) {
     editingUuid = log.uuid;
-    weightInput.value = String(log.weight);
-    repsInput.value   = String(log.reps);
-    updateVolume();
-    saveBtn.textContent = 'ОНОВИТИ';
+    weight = log.weight;
+    reps   = log.reps;
+    rebuildSteppers();
+    refreshVol();
+    saveBtn.replaceChildren(icon('record', { size: 13 }), document.createTextNode(" ОНОВИТИ"));
     cancelBtn.style.display = '';
-    editBadge.textContent = `✏️ Редагування · Сет ${index + 1}`;
+    editBadge.textContent = `✏ Редагування · Сет ${index + 1}`;
     editBadge.style.display = '';
-    formCard.classList.add('log-form--editing');
+    dock.classList.add('log-form--editing');
     refreshDoneToday();
-    weightInput.focus();
   }
 
   function exitEditMode() {
     editingUuid = null;
-    const c = inputCache[exercise.name];
+    const c  = inputCache[exercise.name];
     const ll = logs[logs.length - 1];
-    weightInput.value = String(c?.weight ?? ll?.weight ?? 0);
-    repsInput.value   = String(c?.reps   ?? ll?.reps   ?? exercise.maxReps ?? 12);
-    updateVolume();
-    saveBtn.textContent = 'ЗБЕРЕГТИ';
+    weight = +(c?.weight ?? ll?.weight ?? 0);
+    reps   = +(c?.reps   ?? ll?.reps   ?? exercise.maxReps ?? 12);
+    rebuildSteppers();
+    refreshVol();
+    saveBtn.replaceChildren(icon('record', { size: 13 }), document.createTextNode(" ЗАПИСАТИ СЕТ"));
     cancelBtn.style.display = 'none';
     editBadge.style.display = 'none';
-    formCard.classList.remove('log-form--editing');
+    dock.classList.remove('log-form--editing');
     refreshDoneToday();
   }
 
   // ── Save / Update handler ──
   saveBtn.addEventListener('click', async () => {
-    const weight = parseFloat(weightInput.value);
-    const reps   = parseInt(repsInput.value, 10);
     if (weight <= 0 || reps <= 0) return;
-
     saveBtn.disabled = true;
-    saveBtn.textContent = editingUuid ? 'Оновлення…' : 'Збереження…';
 
-    if (editingUuid) {
-      const uuid = editingUuid;
-      await updateLog(uuid, { weight, reps });
-      await enqueuePatch(uuid, { uuid, date: todayStr(), exercise: exercise.name, group: exercise.group, weight, reps });
-      drainQueue();
-      logs = await getLogsByExercise(exercise.name);
-      exitEditMode();
-    } else {
-      const entry = {
-        uuid: generateUuid(),
-        date: todayStr(),
-        exercise: exercise.name,
-        group: exercise.group,
-        weight,
-        reps,
-      };
-      await saveLog(entry);
-      await enqueuePost(entry);
-      drainQueue();
-      logs = await getLogsByExercise(exercise.name);
-      refreshDoneToday();
-      updateVolume();
-      saveBtn.textContent = 'ЗБЕРЕГТИ';
+    try {
+      if (editingUuid) {
+        const uuid = editingUuid;
+        await updateLog(uuid, { weight, reps });
+        await enqueuePatch(uuid, { uuid, date: todayStr(), exercise: exercise.name, group: exercise.group, weight, reps });
+        drainQueue();
+        logs = await getLogsByExercise(exercise.name);
+        updateReel();
+        updateLogCount();
+        exitEditMode();
+      } else {
+        const entry = {
+          uuid: generateUuid(),
+          date: todayStr(),
+          exercise: exercise.name,
+          group: exercise.group,
+          weight,
+          reps,
+        };
+        await saveLog(entry);
+        await enqueuePost(entry);
+        drainQueue();
+        logs = await getLogsByExercise(exercise.name);
+        updateReel();
+        updateLogCount();
+        refreshDoneToday();
+        refreshVol();
+        saveBtn.replaceChildren(icon('record', { size: 13 }), document.createTextNode(" ЗАПИСАТИ СЕТ"));
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+      saveBtn.disabled = false;
     }
   });
 }

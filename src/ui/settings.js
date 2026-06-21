@@ -1,3 +1,4 @@
+import { h, icon, ui } from './tp7-ui.js';
 import { getGoogleUser } from '../config.js';
 import { signOut } from '../auth/auth.js';
 import { navigate } from '../router.js';
@@ -8,69 +9,54 @@ export async function renderSettings() {
 
   const googleUser = getGoogleUser();
 
-  // ── Header ──
-  const header = document.createElement('header');
-  header.className = 'app-header';
+  // ── App bar ──
+  app.appendChild(
+    h('header', { class: 'appbar', style: 'padding:14px 16px' },
+      ui.iconButton('back', { label: "Назад", onClick: () => navigate('#home') }),
+      h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded)' },
+        "НАЛАШТУВАННЯ")));
 
-  const backBtn = document.createElement('button');
-  backBtn.className = 'btn-icon';
-  backBtn.setAttribute('aria-label', 'Назад');
-  backBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
-  backBtn.addEventListener('click', () => navigate('#home'));
-  header.appendChild(backBtn);
+  // ── Scrollable body ──
+  const scroll = h('div', { class: 'screen-scroll' });
 
-  const titleGroup = document.createElement('div');
-  titleGroup.className = 'app-header__titles';
-  const titleEl = document.createElement('h1');
-  titleEl.className = 'app-header__title';
-  titleEl.textContent = 'Налаштування';
-  titleGroup.appendChild(titleEl);
-  header.appendChild(titleGroup);
-  app.appendChild(header);
+  // Connection status chip (live dot)
+  scroll.appendChild(
+    h('div', { style: 'margin-bottom:4px' },
+      h('span', {
+        style: 'display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 12px;' +
+               'background:var(--bg-sunken);border:1px solid var(--border-channel);box-shadow:var(--shadow-inset);' +
+               'border-radius:var(--radius-sm);font:var(--weight-bold) var(--text-2xs)/1 var(--font-mono);' +
+               'letter-spacing:var(--tracking-wide);color:var(--text-secondary)',
+      },
+        h('span', { style: 'width:7px;height:7px;border-radius:50%;background:var(--orange-500);box-shadow:0 0 8px rgba(255,79,0,.6)' }),
+        "ПІДКЛЮЧЕНО · GOOGLE SHEETS")));
 
-  const main = document.createElement('main');
-  main.className = 'main';
-
-  // ── Connection status chip ──
-  const statusChip = document.createElement('div');
-  statusChip.className = 'status-chip status-chip--connected';
-  statusChip.textContent = '● Підключено до Google Sheets';
-  main.appendChild(statusChip);
-
-  // ── Account card ──
+  // Account card
   if (googleUser) {
-    const accountCard = document.createElement('div');
-    accountCard.className = 'settings-card';
+    const initials = (googleUser.name || googleUser.email || 'G')
+      .split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
 
-    const accountTitle = document.createElement('p');
-    accountTitle.className = 'settings-card__title';
-    accountTitle.textContent = 'Google акаунт';
-
-    const accountDesc = document.createElement('p');
-    accountDesc.className = 'settings-card__desc';
-    accountDesc.textContent = googleUser.name
-      ? `Увійшли як ${googleUser.name} (${googleUser.email})`
-      : googleUser.email;
-
-    if (googleUser.picture) {
-      const avatar = document.createElement('img');
-      avatar.src   = googleUser.picture;
-      avatar.alt   = googleUser.name || googleUser.email;
-      avatar.style.cssText = 'width:40px;height:40px;border-radius:50%;margin-bottom:8px;display:block';
-      accountCard.appendChild(avatar);
-    }
-
-    const signOutBtn = document.createElement('button');
-    signOutBtn.className = 'btn btn--secondary';
-    signOutBtn.textContent = 'Вийти з акаунту';
-    signOutBtn.addEventListener('click', () => {
-      signOut();
-      window.location.reload();
-    });
-
-    accountCard.append(accountTitle, accountDesc, signOutBtn);
-    main.appendChild(accountCard);
+    scroll.appendChild(
+      h('div', { class: 'tp7-card', style: 'border-radius:var(--radius-lg);padding:18px' },
+        h('div', { style: 'display:flex;align-items:center;gap:14px;margin-bottom:16px' },
+          h('div', {
+            style: 'width:48px;height:48px;border-radius:50%;flex:none;' +
+                   'background:radial-gradient(circle at 50% 35%,var(--grey-800),var(--grey-950));' +
+                   'border:1px solid #000;box-shadow:var(--shadow-key);' +
+                   'display:flex;align-items:center;justify-content:center;' +
+                   'font:var(--weight-bold) 16px/1 var(--font-mono);color:var(--grey-50)',
+          }, initials),
+          h('div', {},
+            h('div', { class: 'tp7-label' }, "GOOGLE АКАУНТ"),
+            h('div', { style: 'margin-top:5px;font:var(--weight-medium) var(--text-sm)/1.3 var(--font-sans)' },
+              googleUser.name || ''),
+            h('div', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-tertiary)' },
+              googleUser.email || ''))),
+        ui.button("ВИЙТИ З АКАУНТУ", {
+          block: true,
+          onClick: () => { signOut(); window.location.reload(); },
+        })));
   }
 
-  app.appendChild(main);
+  app.appendChild(scroll);
 }
