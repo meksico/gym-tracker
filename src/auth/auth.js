@@ -54,6 +54,7 @@ function setupTokenClient(onResult) {
         currentUserInfo = await fetchUserInfo();
         localStorage.setItem(LS_USER, JSON.stringify(currentUserInfo));
       }
+      window.dispatchEvent(new CustomEvent('auth-token-refreshed'));
       const allowed = ALLOWED_USER_IDS.includes(currentUserInfo.sub);
       onResult({ allowed, userInfo: currentUserInfo });
     },
@@ -72,12 +73,22 @@ function waitForGsi() {
 
 export async function initAuth(onResult) {
   await waitForGsi();
+
+  const session = loadSession();
+
   if (!window.google?.accounts?.oauth2) {
-    onResult({ needsButton: true, gsiUnavailable: true });
+    // GSI script unavailable (offline or blocked). If a session exists, let the
+    // app load from cache — sync will prompt re-auth when it eventually fails.
+    if (session) {
+      currentUserInfo = session.userInfo;
+      const allowed = ALLOWED_USER_IDS.includes(currentUserInfo?.sub);
+      onResult({ allowed, userInfo: currentUserInfo, tokenExpired: true });
+    } else {
+      onResult({ needsButton: true, gsiUnavailable: true });
+    }
     return;
   }
 
-  const session = loadSession();
   if (!session) {
     setupTokenClient(onResult);
     onResult({ needsButton: true });
@@ -94,14 +105,14 @@ export async function initAuth(onResult) {
     return;
   }
 
-  // Session valid but token expired — try silent refresh
-  // NOTE: will fail on iOS Safari; onResult({needsButton}) fires if it does
+  // Session valid but access token expired. Don't attempt silent refresh —
+  // iOS Safari blocks the required popup when there's no user gesture.
+  // The app loads normally; the sync engine will emit sync-auth-expired
+  // when it hits a 401, and the banner CTA re-auths via user gesture.
+  currentUserInfo = session.userInfo;
   setupTokenClient(onResult);
-  try {
-    tokenClient.requestAccessToken({ prompt: '' });
-  } catch {
-    onResult({ needsButton: true });
-  }
+  const allowed = ALLOWED_USER_IDS.includes(currentUserInfo?.sub);
+  onResult({ allowed, userInfo: currentUserInfo, tokenExpired: true });
 }
 
 export function signIn() {

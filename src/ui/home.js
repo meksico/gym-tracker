@@ -5,6 +5,7 @@ import { getCurrentDay, getTrainingDays } from '../lib/day.js';
 import { renderExerciseModal } from './exerciseModal.js';
 import { navigate } from '../router.js';
 import { getSyncStatus } from '../sync/syncEngine.js';
+import { signIn } from '../auth/auth.js';
 
 const DAY_LABELS = { Monday: "ПН", Wednesday: "СР", Friday: "ПТ" };
 
@@ -29,13 +30,29 @@ export async function renderHome(day) {
   // ── Sync error banner ──
   const syncBanner = document.createElement('div');
   syncBanner.id = 'sync-error-banner';
+
   function showSyncError(msg) {
     syncBanner.style.display = 'block';
     syncBanner.textContent = "⚠ Помилка синхронізації: " + msg;
   }
-  const { lastError } = getSyncStatus();
-  if (lastError) showSyncError(lastError);
+
+  function showAuthExpiredBanner() {
+    syncBanner.style.display = 'block';
+    syncBanner.replaceChildren();
+    const label = document.createTextNode("⚠ Сесія застаріла · ");
+    const btn = document.createElement('button');
+    btn.textContent = "Торкніться щоб поновити →";
+    btn.style.cssText = 'background:none;border:none;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;padding:0';
+    btn.addEventListener('click', () => signIn());
+    syncBanner.append(label, btn);
+  }
+
+  const { lastError, lastErrorIsAuth } = getSyncStatus();
+  if (lastErrorIsAuth) showAuthExpiredBanner();
+  else if (lastError) showSyncError(lastError);
+
   window.addEventListener('sync-error', (e) => showSyncError(e.detail), { once: false });
+  window.addEventListener('sync-auth-expired', () => showAuthExpiredBanner(), { once: false });
   app.appendChild(syncBanner);
 
   // ── Day selector — sticky bar below header ──
