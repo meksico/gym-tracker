@@ -53,6 +53,7 @@ export async function renderHome(day) {
 
   window.addEventListener('sync-error', (e) => showSyncError(e.detail), { once: false });
   window.addEventListener('sync-auth-expired', () => showAuthExpiredBanner(), { once: false });
+  window.addEventListener('auth-token-refreshed', () => { syncBanner.style.display = 'none'; }, { once: false });
   app.appendChild(syncBanner);
 
   // ── Day selector — sticky bar below header ──
