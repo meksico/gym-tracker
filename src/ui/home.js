@@ -90,10 +90,14 @@ export async function renderHome(day) {
             h('div', { class: 'tp7-readout__caption' }, "СЕСІЯ · СЬОГОДНІ"),
             h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);color:var(--grey-50)' },
               selectedDay.toUpperCase())),
-          h('div', { style: 'display:flex;gap:22px' },
+          h('div', { style: 'display:flex;gap:22px;align-items:flex-start' },
             ui.litValue("ВПРАВ", `${done}/${total}`),
-            ui.litValue("ОБʼЄМ СЕСІЯ",
-              sessionVolume.toLocaleString('en-US').replace(/,/g, ' '), "КГ"))))));
+            h('div', {},
+              h('div', { class: 'tp7-readout__caption' }, "ОБʼЄМ СЕСІЯ"),
+              h('div', { style: 'display:flex;align-items:baseline' },
+                h('span', { style: 'font:var(--weight-medium) var(--text-xl)/1 var(--font-mono);letter-spacing:var(--tracking-mono);font-variant-numeric:tabular-nums;color:var(--orange-500);text-shadow:0 0 12px rgba(255,79,0,.45)' },
+                  Math.round(sessionVolume).toLocaleString('en-US').replace(/,/g, ' ')),
+                h('span', { class: 'tp7-readout__unit' }, "КГ")))));
 
   // Exercise list
   const list = h('div', { style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
