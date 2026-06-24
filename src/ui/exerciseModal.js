@@ -207,7 +207,7 @@ export async function renderExerciseModal(exercise) {
         h('div', { style: 'font:var(--weight-semibold) var(--text-2xs)/1 var(--font-sans);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;text-align:center' },
           "ВАГА (КГ)"),
         weightInp),
-      h('div', { style: 'flex:1.5;min-width:0' },
+      h('div', { style: 'flex:2.3;min-width:0' },
         ui.stepper("ПОВТОРЕННЯ", reps, { step: 1, min: 1, onChange: (v) => {
           reps = v;
           if (!editingUuid) inputCache[exercise.name] = { weight, reps };
