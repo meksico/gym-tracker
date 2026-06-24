@@ -17,7 +17,9 @@ export async function getTodayLogs() {
 
 export async function getLogsByExercise(exerciseName) {
   const logs = await getTodayLogs();
-  return logs.filter((l) => l.exercise === exerciseName);
+  return logs
+    .filter((l) => l.exercise === exerciseName)
+    .sort((a, b) => (a.ts || 0) - (b.ts || 0));
 }
 
 export async function getLogByUuid(uuid) {

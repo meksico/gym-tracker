@@ -179,12 +179,34 @@ export async function renderExerciseModal(exercise) {
   // Steppers row
   const stepRow = h('div', { style: 'display:flex;gap:12px' });
   function rebuildSteppers() {
-    stepRow.replaceChildren(
-      ui.stepper("ВАГА (КГ)", weight, { step: 2.5, min: 0, onChange: (v) => {
+    const weightInp = h('input', {
+      type: 'text', inputmode: 'decimal',
+      value: weight > 0 ? String(weight) : '',
+      placeholder: '0',
+      style: 'width:100%;height:48px;background:var(--grey-50);border:1px solid var(--border-channel);' +
+             'box-shadow:var(--shadow-inset);border-radius:var(--radius-sm);text-align:center;' +
+             'font:700 var(--text-2xl)/1 var(--font-mono);color:var(--text-primary);outline:none;' +
+             '-webkit-appearance:none;appearance:none',
+    });
+    weightInp.addEventListener('input', () => {
+      const v = parseFloat(weightInp.value.replace(',', '.'));
+      if (!isNaN(v) && v >= 0) {
         weight = v;
         if (!editingUuid) inputCache[exercise.name] = { weight, reps };
         refreshVol();
-      }}),
+      }
+    });
+    weightInp.addEventListener('blur', () => {
+      if (!weightInp.value || isNaN(parseFloat(weightInp.value.replace(',', '.')))) {
+        weightInp.value = weight > 0 ? String(weight) : '';
+      }
+    });
+
+    stepRow.replaceChildren(
+      h('div', { style: 'flex:2;min-width:0' },
+        h('div', { style: 'font:var(--weight-semibold) var(--text-2xs)/1 var(--font-sans);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;text-align:center' },
+          "ВАГА (КГ)"),
+        weightInp),
       ui.stepper("ПОВТОРЕННЯ", reps, { step: 1, min: 1, onChange: (v) => {
         reps = v;
         if (!editingUuid) inputCache[exercise.name] = { weight, reps };
@@ -271,6 +293,7 @@ export async function renderExerciseModal(exercise) {
       } else {
         const entry = {
           uuid: generateUuid(),
+          ts: Date.now(),
           date: todayStr(),
           exercise: exercise.name,
           group: exercise.group,
