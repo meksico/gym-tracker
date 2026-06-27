@@ -1,11 +1,20 @@
 import { getQueue, removeFromQueue } from '../store/queueStore.js';
 import { appendLog, updateLog, getRecentWeights } from '../api/sheets.js';
 import { cacheRecentWeights } from '../store/recentWeightStore.js';
+import { logger } from '../lib/logger.js';
 
-let draining       = false;
-let lastError      = null;
+let draining        = false;
+let lastError       = null;
 let lastErrorIsAuth = false;
-let pendingCount   = 0;
+let pendingCount    = 0;
+
+// For tests: resets all module-level state.
+export function _resetForTesting() {
+  draining = false;
+  lastError = null;
+  lastErrorIsAuth = false;
+  pendingCount = 0;
+}
 
 function isAuthError(msg) {
   return msg.includes('HTTP 401') || msg.includes('HTTP 403');
@@ -21,6 +30,7 @@ export async function drainQueue() {
   try {
     const queue = await getQueue();
     pendingCount = queue.length;
+    if (queue.length > 0) logger.debug('sync', 'Drain started', { queueLength: queue.length });
     let synced = 0;
     for (const op of queue) {
       try {
@@ -34,11 +44,13 @@ export async function drainQueue() {
         pendingCount--;
         lastError = null;
         lastErrorIsAuth = false;
+        logger.info('sync', 'Op synced', { opId: op.id, type: op.type, uuid: op.uuid });
       } catch (err) {
         lastError = err.message;
-        console.error(`Sync: op ${op.id} failed:`, err.message);
+        logger.error('sync', 'Queue op failed', { opId: op.id, type: op.type, uuid: op.uuid, error: err.message });
         if (isAuthError(err.message)) {
           lastErrorIsAuth = true;
+          logger.warn('sync', 'Auth error — session may have expired');
           window.dispatchEvent(new CustomEvent('sync-auth-expired'));
         } else {
           lastErrorIsAuth = false;
@@ -52,7 +64,7 @@ export async function drainQueue() {
         const weights = await getRecentWeights();
         await cacheRecentWeights(weights);
       } catch (err) {
-        console.warn('Sync: recent-weight refresh failed:', err.message);
+        logger.warn('sync', 'Recent-weight refresh failed', { error: err.message });
       }
     }
   } finally {
@@ -62,11 +74,11 @@ export async function drainQueue() {
 
 export function startSyncEngine() {
   window.addEventListener('online', () => {
-    console.log('Sync: online — draining queue');
+    logger.info('sync', 'Online — draining queue');
     drainQueue();
   });
   window.addEventListener('auth-token-refreshed', () => {
-    console.log('Sync: token refreshed — draining queue');
+    logger.info('sync', 'Token refreshed — draining queue');
     drainQueue();
   });
   drainQueue();

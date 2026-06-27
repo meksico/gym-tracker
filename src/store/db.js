@@ -2,6 +2,11 @@ import { DB_NAME, DB_VERSION, STORES } from '../config.js';
 
 let dbPromise = null;
 
+// Resets the cached DB connection — used by tests to get a fresh database.
+export function resetDb() {
+  dbPromise = null;
+}
+
 export function openDb() {
   if (dbPromise) return dbPromise;
 
@@ -24,6 +29,9 @@ export function openDb() {
       }
       if (!db.objectStoreNames.contains(STORES.META)) {
         db.createObjectStore(STORES.META, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(STORES.APP_LOG)) {
+        db.createObjectStore(STORES.APP_LOG, { keyPath: 'id', autoIncrement: true });
       }
     };
 

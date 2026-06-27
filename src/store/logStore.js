@@ -1,5 +1,6 @@
 import { STORES } from '../config.js';
 import { putInStore, getAllFromStore, getFromStore } from './db.js';
+import { logger } from '../lib/logger.js';
 
 export function todayStr() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -7,6 +8,7 @@ export function todayStr() {
 
 export async function saveLog(entry) {
   await putInStore(STORES.LOGS, entry);
+  logger.info('logStore', 'Set saved', { uuid: entry.uuid, exercise: entry.exercise, weight: entry.weight, reps: entry.reps });
 }
 
 export async function getTodayLogs() {
@@ -37,6 +39,10 @@ export async function getStarCounts() {
 
 export async function updateLog(uuid, patch) {
   const existing = await getLogByUuid(uuid);
-  if (!existing) throw new Error(`Log ${uuid} not found`);
+  if (!existing) {
+    logger.warn('logStore', 'updateLog: uuid not found', { uuid });
+    throw new Error(`Log ${uuid} not found`);
+  }
   await putInStore(STORES.LOGS, { ...existing, ...patch });
+  logger.info('logStore', 'Set updated', { uuid, patch });
 }

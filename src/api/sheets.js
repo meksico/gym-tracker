@@ -1,5 +1,6 @@
 import { getAccessToken } from '../auth/auth.js';
 import { SHEET_ID } from '../config.js';
+import { logger } from '../lib/logger.js';
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`;
 
@@ -68,6 +69,7 @@ export async function getRecentWeights() {
 // Columns: UUID, Date, Exercise, Weight, Reps  (A–E)
 // Columns F–M are Sheets formulas — never written by the app.
 export async function appendLog(entry) {
+  logger.debug('sheets', 'appendLog', { uuid: entry.uuid, exercise: entry.exercise });
   const range = 'Logs!A2:E';
   const res = await fetch(
     `${BASE}/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
@@ -87,19 +89,26 @@ export async function appendLog(entry) {
   );
   if (!res.ok) {
     const body = await res.text().catch(() => '');
+    logger.error('sheets', 'appendLog failed', { status: res.status, uuid: entry.uuid });
     throw new Error(`Sheets append failed (HTTP ${res.status}): ${body}`);
   }
   const result = await res.json();
   // Return the 1-based sheet row so callers can store it for future updates
   const match = result.updates?.updatedRange?.match(/!A(\d+):/);
-  return match ? parseInt(match[1], 10) : null;
+  const row = match ? parseInt(match[1], 10) : null;
+  logger.info('sheets', 'appendLog ok', { uuid: entry.uuid, row });
+  return row;
 }
 
 export async function updateLog(uuid, patch) {
+  logger.debug('sheets', 'updateLog', { uuid });
   // Find the sheet row by scanning column A (UUIDs)
   const uuids = await getRange('Logs!A2:A');
   const idx   = uuids.findIndex(row => row[0] === uuid);
-  if (idx === -1) throw new Error(`UUID not found in sheet: ${uuid}`);
+  if (idx === -1) {
+    logger.error('sheets', 'UUID not found in sheet', { uuid });
+    throw new Error(`UUID not found in sheet: ${uuid}`);
+  }
   const sheetRow = idx + 2; // +1 for 0-based, +1 for header row
 
   const range = `Logs!D${sheetRow}:E${sheetRow}`;
@@ -111,5 +120,9 @@ export async function updateLog(uuid, patch) {
       body: JSON.stringify({ values: [[patch.weight ?? '', patch.reps ?? '']] }),
     },
   );
-  if (!res.ok) throw new Error(`Sheets update failed (HTTP ${res.status})`);
+  if (!res.ok) {
+    logger.error('sheets', 'updateLog failed', { uuid, sheetRow, status: res.status });
+    throw new Error(`Sheets update failed (HTTP ${res.status})`);
+  }
+  logger.info('sheets', 'updateLog ok', { uuid, sheetRow });
 }

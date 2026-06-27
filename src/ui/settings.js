@@ -1,7 +1,88 @@
 import { h, icon, ui } from './tp7-ui.js';
-import { getGoogleUser } from '../config.js';
+import { getGoogleUser, STORES } from '../config.js';
 import { signOut } from '../auth/auth.js';
 import { navigate } from '../router.js';
+import { getAllFromStore, clearStore } from '../store/db.js';
+
+const DEBUG_KEY = 'gym_debug';
+
+const LEVEL_COLOR = {
+  ERROR: 'var(--orange-500)',
+  WARN:  '#d97706',
+  INFO:  '#60a5fa',
+  DEBUG: 'var(--text-tertiary)',
+};
+
+function fmtTs(ts) {
+  const d = new Date(ts);
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map(n => String(n).padStart(2, '0')).join(':');
+}
+
+function safeJson(v) {
+  try { return JSON.stringify(v); } catch { return '[?]'; }
+}
+
+async function buildLogSection() {
+  const allEntries = await getAllFromStore(STORES.APP_LOG);
+  allEntries.sort((a, b) => b.ts - a.ts);
+  let shown = allEntries.slice(0, 50);
+
+  const countEl = h('span', {
+    class: 'tp7-mono',
+    style: 'font-size:var(--text-2xs);color:var(--text-tertiary)',
+  }, String(allEntries.length));
+
+  const listEl = h('div', {
+    style: 'font:11px/1.65 var(--font-mono);overflow-y:auto;max-height:280px;' +
+           'background:var(--bg-sunken);border:1px solid var(--border-channel);' +
+           'border-radius:var(--radius-sm);padding:8px 10px;word-break:break-all',
+  });
+
+  function renderList() {
+    listEl.replaceChildren(
+      ...(shown.length === 0
+        ? [h('span', { style: 'color:var(--text-tertiary)' }, "Немає записів")]
+        : shown.map(e => {
+            const dataStr = e.data !== undefined ? ' ' + safeJson(e.data) : '';
+            return h('div', {
+              style: `color:${LEVEL_COLOR[e.level] ?? 'inherit'};margin-bottom:2px`,
+            }, `[${fmtTs(e.ts)}] ${e.level.padEnd(5)} [${e.context}] ${e.message}${dataStr}`);
+          })
+      )
+    );
+  }
+  renderList();
+
+  const clearBtn = ui.button("ОЧИСТИТИ", {
+    size: 'sm',
+    onClick: async () => {
+      await clearStore(STORES.APP_LOG);
+      shown = [];
+      countEl.textContent = '0';
+      renderList();
+    },
+  });
+
+  const isDebug = localStorage.getItem(DEBUG_KEY) === '1';
+  const debugToggle = ui.button(isDebug ? "DEBUG: ON" : "DEBUG: OFF", {
+    size: 'sm',
+    variant: isDebug ? 'critical' : 'surface',
+    onClick: () => {
+      localStorage.setItem(DEBUG_KEY, isDebug ? '0' : '1');
+      window.location.reload();
+    },
+  });
+
+  return h('div', { class: 'tp7-card', style: 'border-radius:var(--radius-lg);padding:18px;margin-top:12px' },
+    h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap' },
+      ui.eyebrow("DEBUG LOGS"),
+      countEl,
+      h('div', { style: 'flex:1' }),
+      debugToggle,
+      clearBtn),
+    listEl);
+}
 
 export async function renderSettings() {
   const app = document.getElementById('app');
@@ -57,6 +138,10 @@ export async function renderSettings() {
           onClick: () => { signOut(); window.location.reload(); },
         })));
   }
+
+  // Debug log viewer
+  const logSection = await buildLogSection();
+  scroll.appendChild(logSection);
 
   app.appendChild(scroll);
 }

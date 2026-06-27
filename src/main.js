@@ -8,13 +8,14 @@ import { ensureAuth } from './ui/loginScreen.js';
 import { getCurrentDay } from './lib/day.js';
 import { startSyncEngine } from './sync/syncEngine.js';
 import { getCurrentRoute } from './router.js';
+import { logger } from './lib/logger.js';
 
 async function registerSW() {
   if ('serviceWorker' in navigator) {
     try {
       await navigator.serviceWorker.register('./sw.js');
     } catch (err) {
-      console.warn('SW registration failed:', err);
+      logger.warn('main', 'SW registration failed', { error: err.message });
     }
   }
 }
@@ -28,7 +29,7 @@ async function loadAndRenderHome() {
       await cachePlan(planRows);
       await cacheRecentWeights(weightRows);
     } catch (err) {
-      console.warn('Online fetch failed, using cache:', err);
+      logger.warn('main', 'Online fetch failed, using cache', { error: err.message });
     }
   }
 
@@ -69,7 +70,7 @@ async function init() {
 }
 
 init().catch((err) => {
-  console.error('Init failed:', err);
+  logger.error('main', 'Init failed', { error: err.message });
   document.getElementById('app').innerHTML =
     `<div class="setup-screen"><div class="tp7-card" style="text-align:center;padding:32px 24px;width:100%"><p style="font:var(--type-body);color:var(--orange-500)">Помилка запуску: ${err.message}</p></div></div>`;
 });
