@@ -22,7 +22,7 @@ export async function renderHome(day) {
   if (!document.getElementById('home-flip-styles')) {
     const style = document.createElement('style');
     style.id = 'home-flip-styles';
-    style.textContent = '#home-hero-flipper{transition:transform .05s ease}';
+    style.textContent = '#home-hero-flipper{transition:transform .1s ease}';
     document.head.appendChild(style);
   }
 
@@ -115,9 +115,9 @@ export async function renderHome(day) {
   heroBack.style.display = 'none';
 
   const flipper = h('div', { id: 'home-hero-flipper' }, heroFront, heroBack);
-  const flipWrap = h('div', { id: 'home-hero-flipper-wrap'}, flipper);
+  const flipWrap = h('div', { id: 'home-hero-flipper-wrap', style: 'overflow:hidden' }, flipper);
 
-  const HALF = 50;
+  const HALF = 100;
   let isFlipped = false;
 
   function onDocClick(e) {
