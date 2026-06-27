@@ -19,13 +19,6 @@ export async function renderHome(day) {
   const app = document.getElementById('app');
   app.innerHTML = '';
 
-  if (!document.getElementById('home-flip-styles')) {
-    const style = document.createElement('style');
-    style.id = 'home-flip-styles';
-    style.textContent = '#home-hero-flipper{transition:transform .1s ease}';
-    document.head.appendChild(style);
-  }
-
   // ── App bar ──
   app.appendChild(
     h('header', { id: 'home-appbar', class: 'appbar' },
@@ -81,9 +74,12 @@ export async function renderHome(day) {
   // ── Scrollable body ──
   const scroll = h('div', { class: 'screen-scroll' });
 
-  // Session deck — flip card (front: stats, back: day picker)
-  // Both faces share grid-area:1/1 inside a display:grid flipper so the
-  // container height is always max(front,back) — no layout jump on flip.
+  // ── Flip card: front = session stats, back = day picker ──
+  //
+  // Both faces share grid-area:1/1 inside a display:grid+overflow:hidden flipper.
+  // Height is always max(front, back) — no jump. Animation is a horizontal slide:
+  // front exits left, back enters from right (and vice-versa).
+
   const heroFront = h('div', {
     id: 'home-session-hero',
     class: 'tp7-card tp7-card--screen',
@@ -108,69 +104,75 @@ export async function renderHome(day) {
                 Math.round(sessionVolume).toLocaleString('en-US').replace(/,/g, ' ')),
               h('span', { class: 'tp7-readout__unit' }, "КГ")))))));
 
+  // Back face starts off-screen to the right (translateX 100%) and hidden
   const heroBack = h('div', {
     id: 'home-day-selector',
     class: 'tp7-card tp7-card--screen',
-    style: 'grid-area:1/1;display:flex;align-items:center;justify-content:center;padding:16px;visibility:hidden;pointer-events:none',
+    style: 'grid-area:1/1;display:flex;align-items:center;justify-content:center;padding:16px;' +
+           'transform:translateX(100%);visibility:hidden;pointer-events:none',
   },
     ui.segmented(dayItems, selectedDay, (v) => { keepFlipped = true; renderHome(v); }));
 
-  const flipper = h('div', { id: 'home-hero-flipper', style: 'display:grid' }, heroFront, heroBack);
+  // overflow:hidden clips the off-screen face during the slide animation
+  const flipper = h('div', { id: 'home-hero-flipper', style: 'display:grid;overflow:hidden' }, heroFront, heroBack);
   const flipWrap = h('div', { id: 'home-hero-flipper-wrap' }, flipper);
 
-  const HALF = 100;
+  const DUR = 220;
   let isFlipped = false;
 
   function onDocClick(e) {
     if (!flipWrap.contains(e.target)) flipToFront();
   }
 
-  function showFront() {
-    heroBack.style.visibility = 'hidden';
-    heroBack.style.pointerEvents = 'none';
-    heroFront.style.visibility = '';
-    heroFront.style.pointerEvents = '';
-  }
-
-  function showBack() {
-    heroFront.style.visibility = 'hidden';
-    heroFront.style.pointerEvents = 'none';
-    heroBack.style.visibility = '';
-    heroBack.style.pointerEvents = '';
-  }
-
   function flipToFront() {
     if (!isFlipped) return;
-    flipper.style.transition = `transform ${HALF}ms ease-in`;
-    flipper.style.transform = 'scaleX(0)';
+    isFlipped = false;
+    heroFront.style.visibility = '';
+    heroFront.style.pointerEvents = '';
+    heroFront.style.transition = `transform ${DUR}ms ease-in-out`;
+    heroFront.style.transform = 'translateX(0)';
+    heroBack.style.transition = `transform ${DUR}ms ease-in-out`;
+    heroBack.style.transform = 'translateX(100%)';
     setTimeout(() => {
-      isFlipped = false;
-      showFront();
-      flipper.style.transition = `transform ${HALF}ms ease-out`;
-      flipper.style.transform = '';
+      heroBack.style.visibility = 'hidden';
+      heroBack.style.pointerEvents = 'none';
       document.removeEventListener('click', onDocClick);
-    }, HALF);
+    }, DUR);
   }
 
   function flipToBack() {
     if (isFlipped) return;
-    flipper.style.transition = `transform ${HALF}ms ease-in`;
-    flipper.style.transform = 'scaleX(0)';
+    isFlipped = true;
+    heroBack.style.visibility = '';
+    heroBack.style.pointerEvents = '';
+    heroFront.style.transition = `transform ${DUR}ms ease-in-out`;
+    heroFront.style.transform = 'translateX(-100%)';
+    heroBack.style.transition = `transform ${DUR}ms ease-in-out`;
+    heroBack.style.transform = 'translateX(0)';
     setTimeout(() => {
-      isFlipped = true;
-      showBack();
-      flipper.style.transition = `transform ${HALF}ms ease-out`;
-      flipper.style.transform = '';
+      heroFront.style.visibility = 'hidden';
+      heroFront.style.pointerEvents = 'none';
       setTimeout(() => document.addEventListener('click', onDocClick), 0);
-    }, HALF);
+    }, DUR);
   }
 
   heroFront.addEventListener('click', flipToBack);
+  // Tap the dark card background on the back face to flip back
+  heroBack.addEventListener('click', (e) => {
+    if (e.target === heroBack) flipToFront();
+  });
 
-  // Returning from a day-change: restore back-face without animation
+  // Returning from a day-change: restore back-face instantly (no animation)
   if (keepFlipped) {
     isFlipped = true;
-    showBack();
+    heroFront.style.transition = 'none';
+    heroFront.style.transform = 'translateX(-100%)';
+    heroFront.style.visibility = 'hidden';
+    heroFront.style.pointerEvents = 'none';
+    heroBack.style.transition = 'none';
+    heroBack.style.transform = 'translateX(0)';
+    heroBack.style.visibility = '';
+    heroBack.style.pointerEvents = '';
     keepFlipped = false;
     setTimeout(() => document.addEventListener('click', onDocClick), 0);
   }
