@@ -82,10 +82,12 @@ export async function renderHome(day) {
   const scroll = h('div', { class: 'screen-scroll' });
 
   // Session deck — flip card (front: stats, back: day picker)
+  // Both faces share grid-area:1/1 inside a display:grid flipper so the
+  // container height is always max(front,back) — no layout jump on flip.
   const heroFront = h('div', {
     id: 'home-session-hero',
     class: 'tp7-card tp7-card--screen',
-    style: 'border-radius:var(--radius-lg);padding:16px;cursor:pointer',
+    style: 'grid-area:1/1;border-radius:var(--radius-lg);padding:16px;cursor:pointer',
   },
     h('div', { style: 'display:flex;align-items:center;gap:18px' },
       ui.tapeReel(total ? done / total : 0, { size: 96, label: `${done}/${total}`, spinning: done > 0 }),
@@ -109,13 +111,12 @@ export async function renderHome(day) {
   const heroBack = h('div', {
     id: 'home-day-selector',
     class: 'tp7-card tp7-card--screen',
-    style: 'border-radius:var(--radius-lg);align-items:center;justify-content:center;padding:16px',
+    style: 'grid-area:1/1;display:flex;align-items:center;justify-content:center;padding:16px;visibility:hidden;pointer-events:none',
   },
     ui.segmented(dayItems, selectedDay, (v) => { keepFlipped = true; renderHome(v); }));
-  heroBack.style.display = 'none';
 
-  const flipper = h('div', { id: 'home-hero-flipper' }, heroFront, heroBack);
-  const flipWrap = h('div', { id: 'home-hero-flipper-wrap', style: 'overflow:visible' }, flipper);
+  const flipper = h('div', { id: 'home-hero-flipper', style: 'display:grid' }, heroFront, heroBack);
+  const flipWrap = h('div', { id: 'home-hero-flipper-wrap' }, flipper);
 
   const HALF = 100;
   let isFlipped = false;
@@ -124,14 +125,27 @@ export async function renderHome(day) {
     if (!flipWrap.contains(e.target)) flipToFront();
   }
 
+  function showFront() {
+    heroBack.style.visibility = 'hidden';
+    heroBack.style.pointerEvents = 'none';
+    heroFront.style.visibility = '';
+    heroFront.style.pointerEvents = '';
+  }
+
+  function showBack() {
+    heroFront.style.visibility = 'hidden';
+    heroFront.style.pointerEvents = 'none';
+    heroBack.style.visibility = '';
+    heroBack.style.pointerEvents = '';
+  }
+
   function flipToFront() {
     if (!isFlipped) return;
     flipper.style.transition = `transform ${HALF}ms ease-in`;
     flipper.style.transform = 'scaleX(0)';
     setTimeout(() => {
       isFlipped = false;
-      heroBack.style.display = 'none';
-      heroFront.style.display = '';
+      showFront();
       flipper.style.transition = `transform ${HALF}ms ease-out`;
       flipper.style.transform = '';
       document.removeEventListener('click', onDocClick);
@@ -144,8 +158,7 @@ export async function renderHome(day) {
     flipper.style.transform = 'scaleX(0)';
     setTimeout(() => {
       isFlipped = true;
-      heroFront.style.display = 'none';
-      heroBack.style.display = 'flex';
+      showBack();
       flipper.style.transition = `transform ${HALF}ms ease-out`;
       flipper.style.transform = '';
       setTimeout(() => document.addEventListener('click', onDocClick), 0);
@@ -157,22 +170,12 @@ export async function renderHome(day) {
   // Returning from a day-change: restore back-face without animation
   if (keepFlipped) {
     isFlipped = true;
-    heroFront.style.display = 'none';
-    heroBack.style.display = 'flex';
+    showBack();
     keepFlipped = false;
     setTimeout(() => document.addEventListener('click', onDocClick), 0);
   }
 
   scroll.appendChild(flipWrap);
-
-  // Lock wrapper height to front-face height so flipping never causes a layout jump
-  requestAnimationFrame(() => {
-    const frontH = heroFront.offsetHeight;
-    if (frontH > 0) {
-      flipWrap.style.height = frontH + 'px';
-      heroBack.style.height = frontH + 'px';
-    }
-  });
 
   // Exercise list
   const list = h('div', { id: 'home-exercise-list', style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
