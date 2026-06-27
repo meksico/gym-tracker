@@ -10,6 +10,7 @@ import { signIn } from '../auth/auth.js';
 const DAY_LABELS = { Monday: "ПН", Wednesday: "СР", Friday: "ПТ" };
 
 let selectedDay = null;
+let keepFlipped = false;
 
 export async function renderHome(day) {
   if (day) selectedDay = day;
@@ -21,13 +22,7 @@ export async function renderHome(day) {
   if (!document.getElementById('home-flip-styles')) {
     const style = document.createElement('style');
     style.id = 'home-flip-styles';
-    style.textContent = [
-      '#home-hero-flipper-wrap{perspective:800px}',
-      '#home-hero-flipper{position:relative;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1)}',
-      '#home-hero-flipper.is-flipped{transform:rotateY(180deg)}',
-      '.hero-face{-webkit-backface-visibility:hidden;backface-visibility:hidden}',
-      '.hero-face--back{transform:rotateY(180deg);position:absolute;inset:0}',
-    ].join('');
+    style.textContent = '#home-hero-flipper{transition:transform .2s ease}';
     document.head.appendChild(style);
   }
 
@@ -89,7 +84,7 @@ export async function renderHome(day) {
   // Session deck — flip card (front: stats, back: day picker)
   const heroFront = h('div', {
     id: 'home-session-hero',
-    class: 'tp7-card tp7-card--screen hero-face',
+    class: 'tp7-card tp7-card--screen',
     style: 'border-radius:var(--radius-lg);padding:16px;cursor:pointer',
   },
     h('div', { style: 'display:flex;align-items:center;gap:18px' },
@@ -113,16 +108,60 @@ export async function renderHome(day) {
 
   const heroBack = h('div', {
     id: 'home-day-selector',
-    class: 'tp7-card tp7-card--screen hero-face hero-face--back',
-    style: 'border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;padding:16px',
+    class: 'tp7-card tp7-card--screen',
+    style: 'border-radius:var(--radius-lg);align-items:center;justify-content:center;padding:16px',
   },
-    ui.segmented(dayItems, selectedDay, (v) => renderHome(v)));
+    ui.segmented(dayItems, selectedDay, (v) => { keepFlipped = true; renderHome(v); }));
+  heroBack.style.display = 'none';
 
   const flipper = h('div', { id: 'home-hero-flipper' }, heroFront, heroBack);
   const flipWrap = h('div', { id: 'home-hero-flipper-wrap' }, flipper);
 
-  heroFront.addEventListener('click', () => flipper.classList.add('is-flipped'));
-  heroBack.addEventListener('click', () => flipper.classList.remove('is-flipped'));
+  const HALF = 200;
+  let isFlipped = false;
+
+  function onDocClick(e) {
+    if (!flipWrap.contains(e.target)) flipToFront();
+  }
+
+  function flipToFront() {
+    if (!isFlipped) return;
+    flipper.style.transition = `transform ${HALF}ms ease-in`;
+    flipper.style.transform = 'scaleX(0)';
+    setTimeout(() => {
+      isFlipped = false;
+      heroBack.style.display = 'none';
+      heroFront.style.display = '';
+      flipper.style.transition = `transform ${HALF}ms ease-out`;
+      flipper.style.transform = '';
+      document.removeEventListener('click', onDocClick);
+    }, HALF);
+  }
+
+  function flipToBack() {
+    if (isFlipped) return;
+    flipper.style.transition = `transform ${HALF}ms ease-in`;
+    flipper.style.transform = 'scaleX(0)';
+    setTimeout(() => {
+      isFlipped = true;
+      heroFront.style.display = 'none';
+      heroBack.style.display = 'flex';
+      flipper.style.transition = `transform ${HALF}ms ease-out`;
+      flipper.style.transform = '';
+      setTimeout(() => document.addEventListener('click', onDocClick), 0);
+    }, HALF);
+  }
+
+  heroFront.addEventListener('click', flipToBack);
+
+  // Returning from a day-change: restore back-face without animation
+  if (keepFlipped) {
+    isFlipped = true;
+    heroFront.style.display = 'none';
+    heroBack.style.display = 'flex';
+    keepFlipped = false;
+    setTimeout(() => document.addEventListener('click', onDocClick), 0);
+  }
 
   scroll.appendChild(flipWrap);
 
