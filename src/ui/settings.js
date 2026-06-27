@@ -3,7 +3,9 @@ import { getGoogleUser, STORES } from '../config.js';
 import { APP_VERSION } from '../lib/version.js';
 import { signOut } from '../auth/auth.js';
 import { navigate } from '../router.js';
-import { getAllFromStore, clearStore } from '../store/db.js';
+import { getAllFromStore, clearStore, deleteFromStore } from '../store/db.js';
+import { getTodayLogs } from '../store/logStore.js';
+import { logger } from '../lib/logger.js';
 
 const DEBUG_KEY = 'gym_debug';
 
@@ -22,6 +24,64 @@ function fmtTs(ts) {
 
 function safeJson(v) {
   try { return JSON.stringify(v); } catch { return '[?]'; }
+}
+
+async function buildClearTodaySection() {
+  const logs = await getTodayLogs();
+  const count = logs.length;
+
+  const wrap = h('div', {
+    id: 'settings-clear-today-section',
+    class: 'tp7-card',
+    style: 'border-radius:var(--radius-lg);padding:18px;margin-top:12px',
+  });
+
+  function renderDefault() {
+    const btn = ui.button("ВИДАЛИТИ ЗАПИСИ СЬОГОДНІ", {
+      size: 'sm',
+      variant: count > 0 ? 'critical' : 'surface',
+      onClick: renderConfirm,
+    });
+    btn.id = 'settings-clear-today-btn';
+    btn.disabled = count === 0;
+
+    wrap.replaceChildren(
+      h('div', { style: 'display:flex;align-items:center;gap:8px' },
+        ui.eyebrow("ДАНІ СЬОГОДНІ"),
+        h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);color:var(--text-tertiary)' },
+          `${count} записів`),
+        h('div', { style: 'flex:1' }),
+        btn));
+  }
+
+  function renderConfirm() {
+    const confirmBtn = ui.button("ТАК, ВИДАЛИТИ", {
+      size: 'sm',
+      variant: 'critical',
+      onClick: async () => {
+        for (const log of logs) {
+          await deleteFromStore(STORES.LOGS, log.uuid);
+        }
+        await clearStore(STORES.QUEUE);
+        logger.info('settings', 'Today logs cleared', { count });
+        window.location.reload();
+      },
+    });
+    confirmBtn.id = 'settings-clear-today-confirm-btn';
+
+    const cancelBtn = ui.button("СКАСУВАТИ", { size: 'sm', onClick: renderDefault });
+
+    wrap.replaceChildren(
+      h('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap' },
+        h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-secondary)' },
+          `Видалити ${count} записи та чергу?`),
+        h('div', { style: 'flex:1' }),
+        cancelBtn,
+        confirmBtn));
+  }
+
+  renderDefault();
+  return wrap;
 }
 
 async function buildLogSection() {
@@ -145,6 +205,10 @@ export async function renderSettings() {
           onClick: () => { signOut(); window.location.reload(); },
         })));
   }
+
+  // Clear today's logs
+  const clearTodaySection = await buildClearTodaySection();
+  scroll.appendChild(clearTodaySection);
 
   // Debug log viewer
   const logSection = await buildLogSection();
