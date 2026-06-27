@@ -115,7 +115,7 @@ export async function renderHome(day) {
   heroBack.style.display = 'none';
 
   const flipper = h('div', { id: 'home-hero-flipper' }, heroFront, heroBack);
-  const flipWrap = h('div', { id: 'home-hero-flipper-wrap' }, flipper);
+  const flipWrap = h('div', { id: 'home-hero-flipper-wrap', style: 'overflow:hidden' }, flipper);
 
   const HALF = 200;
   let isFlipped = false;
@@ -164,6 +164,15 @@ export async function renderHome(day) {
   }
 
   scroll.appendChild(flipWrap);
+
+  // Lock wrapper height to front-face height so flipping never causes a layout jump
+  requestAnimationFrame(() => {
+    const frontH = heroFront.offsetHeight;
+    if (frontH > 0) {
+      flipWrap.style.height = frontH + 'px';
+      heroBack.style.height = frontH + 'px';
+    }
+  });
 
   // Exercise list
   const list = h('div', { id: 'home-exercise-list', style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
