@@ -18,6 +18,19 @@ export async function renderHome(day) {
   const app = document.getElementById('app');
   app.innerHTML = '';
 
+  if (!document.getElementById('home-flip-styles')) {
+    const style = document.createElement('style');
+    style.id = 'home-flip-styles';
+    style.textContent = [
+      '#home-hero-flipper-wrap{perspective:800px}',
+      '#home-hero-flipper{position:relative;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1)}',
+      '#home-hero-flipper.is-flipped{transform:rotateY(180deg)}',
+      '.hero-face{-webkit-backface-visibility:hidden;backface-visibility:hidden}',
+      '.hero-face--back{transform:rotateY(180deg);position:absolute;inset:0}',
+    ].join('');
+    document.head.appendChild(style);
+  }
+
   // ── App bar ──
   app.appendChild(
     h('header', { id: 'home-appbar', class: 'appbar' },
@@ -56,15 +69,7 @@ export async function renderHome(day) {
   window.addEventListener('auth-token-refreshed', () => { syncBanner.style.display = 'none'; }, { once: false });
   app.appendChild(syncBanner);
 
-  // ── Day selector — sticky bar below header ──
   const dayItems = getTrainingDays().map((d) => ({ value: d, label: DAY_LABELS[d] || d }));
-  app.appendChild(
-    h('div', {
-      id: 'home-day-selector',
-      style: 'flex:none;padding:10px 16px;background:var(--bg-primary);' +
-             'border-bottom:1px solid var(--border-hairline);box-shadow:0 1px 0 rgba(255,255,255,.6)',
-    },
-      ui.segmented(dayItems, selectedDay, (v) => renderHome(v))));
 
   // ── Load data ──
   const [plan, starCounts, todayLogs] = await Promise.all([
@@ -81,27 +86,45 @@ export async function renderHome(day) {
   // ── Scrollable body ──
   const scroll = h('div', { class: 'screen-scroll' });
 
-  // Session deck (dark card + tape reel)
-  scroll.appendChild(
-    h('div', { id: 'home-session-hero', class: 'tp7-card tp7-card--screen', style: 'border-radius:var(--radius-lg);padding:16px' },
-      h('div', { style: 'display:flex;align-items:center;gap:18px' },
-        ui.tapeReel(total ? done / total : 0, { size: 96, label: `${done}/${total}`, spinning: done > 0 }),
-        h('div', { style: 'display:flex;flex-direction:column;gap:16px;flex:1' },
+  // Session deck — flip card (front: stats, back: day picker)
+  const heroFront = h('div', {
+    id: 'home-session-hero',
+    class: 'tp7-card tp7-card--screen hero-face',
+    style: 'border-radius:var(--radius-lg);padding:16px;cursor:pointer',
+  },
+    h('div', { style: 'display:flex;align-items:center;gap:18px' },
+      ui.tapeReel(total ? done / total : 0, { size: 96, label: `${done}/${total}`, spinning: done > 0 }),
+      h('div', { style: 'display:flex;flex-direction:column;gap:16px;flex:1' },
+        h('div', {},
+          h('div', { class: 'tp7-readout__caption' }, "СЕСІЯ · СЬОГОДНІ"),
+          h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);color:var(--grey-50)' },
+            selectedDay.toUpperCase())),
+        h('div', { style: 'display:flex;gap:22px;align-items:flex-start' },
           h('div', {},
-            h('div', { class: 'tp7-readout__caption' }, "СЕСІЯ · СЬОГОДНІ"),
-            h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);color:var(--grey-50)' },
-              selectedDay.toUpperCase())),
-          h('div', { style: 'display:flex;gap:22px;align-items:flex-start' },
-            h('div', {},
-              h('div', { class: 'tp7-readout__caption' }, "ВПРАВ"),
-              h('span', { style: 'font:var(--weight-medium) var(--text-lg)/1 var(--font-mono);letter-spacing:var(--tracking-mono);font-variant-numeric:tabular-nums;color:var(--orange-500);text-shadow:0 0 12px rgba(255,79,0,.45)' },
-                `${done}/${total}`)),
-            h('div', {},
-              h('div', { class: 'tp7-readout__caption' }, "ОБʼЄМ СЕСІЯ"),
-              h('div', { style: 'display:flex;align-items:baseline' },
-                h('span', { style: 'font:var(--weight-medium) var(--text-2xl)/1 var(--font-mono);letter-spacing:var(--tracking-mono);font-variant-numeric:tabular-nums;color:var(--orange-500);text-shadow:0 0 12px rgba(255,79,0,.45)' },
-                  Math.round(sessionVolume).toLocaleString('en-US').replace(/,/g, ' ')),
-                h('span', { class: 'tp7-readout__unit' }, "КГ"))))))));
+            h('div', { class: 'tp7-readout__caption' }, "ВПРАВ"),
+            h('span', { style: 'font:var(--weight-medium) var(--text-lg)/1 var(--font-mono);letter-spacing:var(--tracking-mono);font-variant-numeric:tabular-nums;color:var(--orange-500);text-shadow:0 0 12px rgba(255,79,0,.45)' },
+              `${done}/${total}`)),
+          h('div', {},
+            h('div', { class: 'tp7-readout__caption' }, "ОБʼЄМ СЕСІЯ"),
+            h('div', { style: 'display:flex;align-items:baseline' },
+              h('span', { style: 'font:var(--weight-medium) var(--text-2xl)/1 var(--font-mono);letter-spacing:var(--tracking-mono);font-variant-numeric:tabular-nums;color:var(--orange-500);text-shadow:0 0 12px rgba(255,79,0,.45)' },
+                Math.round(sessionVolume).toLocaleString('en-US').replace(/,/g, ' ')),
+              h('span', { class: 'tp7-readout__unit' }, "КГ")))))));
+
+  const heroBack = h('div', {
+    id: 'home-day-selector',
+    class: 'tp7-card tp7-card--screen hero-face hero-face--back',
+    style: 'border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;padding:16px',
+  },
+    ui.segmented(dayItems, selectedDay, (v) => renderHome(v)));
+
+  const flipper = h('div', { id: 'home-hero-flipper' }, heroFront, heroBack);
+  const flipWrap = h('div', { id: 'home-hero-flipper-wrap' }, flipper);
+
+  heroFront.addEventListener('click', () => flipper.classList.add('is-flipped'));
+  heroBack.addEventListener('click', () => flipper.classList.remove('is-flipped'));
+
+  scroll.appendChild(flipWrap);
 
   // Exercise list
   const list = h('div', { id: 'home-exercise-list', style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
