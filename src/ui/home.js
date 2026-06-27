@@ -115,7 +115,7 @@ export async function renderHome(day) {
   heroBack.style.display = 'none';
 
   const flipper = h('div', { id: 'home-hero-flipper' }, heroFront, heroBack);
-  const flipWrap = h('div', { id: 'home-hero-flipper-wrap', style: 'overflow:hidden' }, flipper);
+  const flipWrap = h('div', { id: 'home-hero-flipper-wrap', style: 'overflow:visible' }, flipper);
 
   const HALF = 100;
   let isFlipped = false;
