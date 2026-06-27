@@ -1,0 +1,3 @@
+#!/bin/sh
+node scripts/update-version.js
+git add src/lib/version.js

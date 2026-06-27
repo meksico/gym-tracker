@@ -1,5 +1,6 @@
 import { h, icon, ui } from './tp7-ui.js';
 import { getGoogleUser, STORES } from '../config.js';
+import { APP_VERSION } from '../lib/version.js';
 import { signOut } from '../auth/auth.js';
 import { navigate } from '../router.js';
 import { getAllFromStore, clearStore } from '../store/db.js';
@@ -142,6 +143,16 @@ export async function renderSettings() {
   // Debug log viewer
   const logSection = await buildLogSection();
   scroll.appendChild(logSection);
+
+  // Version label
+  scroll.appendChild(
+    h('div', { style: 'margin-top:16px;text-align:center' },
+      h('span', {
+        style: 'display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;' +
+               'background:var(--bg-sunken);border:1px solid var(--border-channel);' +
+               'border-radius:var(--radius-sm);font:var(--weight-bold) var(--text-2xs)/1 var(--font-mono);' +
+               'letter-spacing:var(--tracking-wide);color:var(--text-tertiary)',
+      }, `GYM TRACKER ${APP_VERSION}`)));
 
   app.appendChild(scroll);
 }
