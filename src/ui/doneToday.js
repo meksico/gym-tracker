@@ -14,6 +14,7 @@ export function doneTodayEl(logs, { selectedUuid, onSetClick } = {}) {
       const isSelected = log.uuid === selectedUuid;
       const vol = Math.round(log.weight * log.reps);
       const row = h('div', {
+        id: `modal-set-row-${i + 1}`,
         style: [
           'display:flex;align-items:center;gap:12px;padding:11px 14px;',
           'background:var(--bg-sunken);border:1px solid var(--border-channel);',

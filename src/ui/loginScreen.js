@@ -12,7 +12,7 @@ export function ensureAuth() {
       const app = document.getElementById('app');
       app.innerHTML = '';
 
-      const screen = h('div', { class: 'setup-screen' });
+      const screen = h('div', { id: 'login-screen', class: 'setup-screen' });
 
       const card = h('div', {
         id: 'login-card',

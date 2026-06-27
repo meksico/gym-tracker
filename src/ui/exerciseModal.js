@@ -33,7 +33,7 @@ export async function renderExerciseModal(exercise) {
   app.innerHTML = '';
 
   // ── App bar ──
-  const bar = h('header', { class: 'appbar', style: 'align-items:flex-start;padding:12px 16px' },
+  const bar = h('header', { id: 'modal-appbar', class: 'appbar', style: 'align-items:flex-start;padding:12px 16px' },
     ui.iconButton('back', { label: "Назад", onClick: () => renderHome() }),
     h('div', { style: 'flex:1;min-width:0' },
       h('div', { style: 'font:var(--weight-bold) var(--text-md)/1.15 var(--font-sans)' }, exercise.name),
@@ -84,7 +84,7 @@ export async function renderExerciseModal(exercise) {
       });
     }
 
-    scrollArea.appendChild(h('div', { class: 'yt-section' }, techBtn, videoPnl));
+    scrollArea.appendChild(h('div', { id: 'modal-yt-section', class: 'yt-section' }, techBtn, videoPnl));
   }
 
   // Load data
@@ -103,10 +103,11 @@ export async function renderExerciseModal(exercise) {
   updateLogCount();
 
   scrollArea.appendChild(
-    h('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px' },
+    h('div', { id: 'modal-sets-header', style: 'display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px' },
       ui.eyebrow("ВИКОНАНО СЬОГОДНІ"), logCountEl));
 
   const doneTodayWrap = document.createElement('div');
+  doneTodayWrap.id = 'modal-sets-list';
 
   function refreshDoneToday() {
     doneTodayWrap.replaceChildren(
@@ -124,10 +125,12 @@ export async function renderExerciseModal(exercise) {
 
   // ── Dock (pinned bottom) ──
   const dock = document.createElement('div');
+  dock.id = 'modal-dock';
   dock.className = 'log-form';
 
   // Edit mode indicator
   const editBadge = document.createElement('div');
+  editBadge.id = 'modal-edit-badge';
   editBadge.className = 'edit-badge';
   editBadge.style.display = 'none';
   dock.appendChild(editBadge);
@@ -139,7 +142,7 @@ export async function renderExerciseModal(exercise) {
   let reps   = +(cached?.reps   ?? lastLog?.reps   ?? exercise.maxReps ?? 12);
 
   // Tape reel (progress indicator)
-  const reelWrap = h('div', { style: 'flex:none' });
+  const reelWrap = h('div', { id: 'modal-reel', style: 'flex:none' });
   function updateReel() {
     reelWrap.replaceChildren(
       ui.tapeReel(exercise.sets ? Math.min(1, logs.length / exercise.sets) : 0, {
@@ -149,11 +152,11 @@ export async function renderExerciseModal(exercise) {
   updateReel();
 
   // Recall button + reel row
-  const recallRow = h('div', { style: 'display:flex;align-items:center;gap:10px' });
+  const recallRow = h('div', { id: 'modal-recall-row', style: 'display:flex;align-items:center;gap:10px' });
   function buildRecallRow() {
     recallRow.replaceChildren();
     if (recentWeight?.maxWeight) {
-      const recallBtn = h('button', { type: 'button',
+      const recallBtn = h('button', { id: 'modal-recall-btn', type: 'button',
         style: 'appearance:none;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;height:34px;cursor:pointer;' +
                'background:var(--bg-sunken);border:1px solid var(--border-channel);box-shadow:var(--shadow-inset);' +
                'border-radius:var(--radius-sm);font:var(--weight-medium) var(--text-xs)/1 var(--font-mono);color:var(--text-secondary)' },
@@ -177,9 +180,10 @@ export async function renderExerciseModal(exercise) {
   dock.appendChild(recallRow);
 
   // Steppers row
-  const stepRow = h('div', { style: 'display:flex;gap:12px' });
+  const stepRow = h('div', { id: 'modal-step-row', style: 'display:flex;gap:12px' });
   function rebuildSteppers() {
     const weightInp = h('input', {
+      id: 'modal-weight-input',
       type: 'text', inputmode: 'decimal',
       value: weight > 0 ? String(weight) : '',
       placeholder: '0',
@@ -222,16 +226,18 @@ export async function renderExerciseModal(exercise) {
     variant: 'critical', size: 'lg', block: true,
     startIcon: icon('record', { size: 13 }),
   });
+  saveBtn.id = 'modal-save-btn';
 
   // Cancel button (edit mode only)
   const cancelBtn = ui.button("СКАСУВАТИ", { variant: 'routine', block: true });
+  cancelBtn.id = 'modal-cancel-btn';
   cancelBtn.style.display = 'none';
   cancelBtn.addEventListener('click', exitEditMode);
 
   // Volume readout
   const volNumEl = h('span', { class: 'tp7-mono', style: 'font-size:var(--text-md);font-weight:700;color:var(--text-primary)' });
   dock.appendChild(
-    h('div', { class: 'volume-display' },
+    h('div', { id: 'modal-volume-display', class: 'volume-display' },
       h('span', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-secondary)' },
         "ОБʼЄМ"),
       volNumEl));

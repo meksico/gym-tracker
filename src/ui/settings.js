@@ -35,6 +35,7 @@ async function buildLogSection() {
   }, String(allEntries.length));
 
   const listEl = h('div', {
+    id: 'settings-log-list',
     style: 'font:11px/1.65 var(--font-mono);overflow-y:auto;max-height:280px;' +
            'background:var(--bg-sunken);border:1px solid var(--border-channel);' +
            'border-radius:var(--radius-sm);padding:8px 10px;word-break:break-all',
@@ -65,6 +66,8 @@ async function buildLogSection() {
     },
   });
 
+  clearBtn.id = 'settings-log-clear-btn';
+
   const isDebug = localStorage.getItem(DEBUG_KEY) === '1';
   const debugToggle = ui.button(isDebug ? "DEBUG: ON" : "DEBUG: OFF", {
     size: 'sm',
@@ -75,7 +78,9 @@ async function buildLogSection() {
     },
   });
 
-  return h('div', { class: 'tp7-card', style: 'border-radius:var(--radius-lg);padding:18px;margin-top:12px' },
+  debugToggle.id = 'settings-debug-toggle';
+
+  return h('div', { id: 'settings-log-section', class: 'tp7-card', style: 'border-radius:var(--radius-lg);padding:18px;margin-top:12px' },
     h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap' },
       ui.eyebrow("DEBUG LOGS"),
       countEl,
@@ -93,18 +98,19 @@ export async function renderSettings() {
 
   // ── App bar ──
   app.appendChild(
-    h('header', { class: 'appbar', style: 'padding:14px 16px' },
+    h('header', { id: 'settings-appbar', class: 'appbar', style: 'padding:14px 16px' },
       ui.iconButton('back', { label: "Назад", onClick: () => navigate('#home') }),
       h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded)' },
         "НАЛАШТУВАННЯ")));
 
   // ── Scrollable body ──
-  const scroll = h('div', { class: 'screen-scroll' });
+  const scroll = h('div', { id: 'settings-scroll', class: 'screen-scroll' });
 
   // Connection status chip (live dot)
   scroll.appendChild(
     h('div', { style: 'margin-bottom:4px' },
       h('span', {
+        id: 'settings-connection-chip',
         style: 'display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 12px;' +
                'background:var(--bg-sunken);border:1px solid var(--border-channel);box-shadow:var(--shadow-inset);' +
                'border-radius:var(--radius-sm);font:var(--weight-bold) var(--text-2xs)/1 var(--font-mono);' +
@@ -119,7 +125,7 @@ export async function renderSettings() {
       .split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
 
     scroll.appendChild(
-      h('div', { class: 'tp7-card', style: 'border-radius:var(--radius-lg);padding:18px' },
+      h('div', { id: 'settings-account-card', class: 'tp7-card', style: 'border-radius:var(--radius-lg);padding:18px' },
         h('div', { style: 'display:flex;align-items:center;gap:14px;margin-bottom:16px' },
           h('div', {
             style: 'width:48px;height:48px;border-radius:50%;flex:none;' +
@@ -146,7 +152,7 @@ export async function renderSettings() {
 
   // Version label
   scroll.appendChild(
-    h('div', { style: 'margin-top:16px;text-align:center' },
+    h('div', { id: 'settings-version', style: 'margin-top:16px;text-align:center' },
       h('span', {
         style: 'display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;' +
                'background:var(--bg-sunken);border:1px solid var(--border-channel);' +

@@ -20,7 +20,7 @@ export async function renderHome(day) {
 
   // ── App bar ──
   app.appendChild(
-    h('header', { class: 'appbar' },
+    h('header', { id: 'home-appbar', class: 'appbar' },
       icon('barbell', { size: 26 }),
       h('div', { style: 'flex:1;min-width:0' },
         h('div', { style: 'font:var(--weight-bold) var(--text-lg)/1 var(--font-expanded);letter-spacing:.02em' }, "GYM_LOGS"),
@@ -29,7 +29,7 @@ export async function renderHome(day) {
 
   // ── Sync error banner ──
   const syncBanner = document.createElement('div');
-  syncBanner.id = 'sync-error-banner';
+  syncBanner.id = 'home-sync-banner';
 
   function showSyncError(msg) {
     syncBanner.style.display = 'block';
@@ -60,6 +60,7 @@ export async function renderHome(day) {
   const dayItems = getTrainingDays().map((d) => ({ value: d, label: DAY_LABELS[d] || d }));
   app.appendChild(
     h('div', {
+      id: 'home-day-selector',
       style: 'flex:none;padding:10px 16px;background:var(--bg-primary);' +
              'border-bottom:1px solid var(--border-hairline);box-shadow:0 1px 0 rgba(255,255,255,.6)',
     },
@@ -82,7 +83,7 @@ export async function renderHome(day) {
 
   // Session deck (dark card + tape reel)
   scroll.appendChild(
-    h('div', { class: 'tp7-card tp7-card--screen', style: 'border-radius:var(--radius-lg);padding:16px' },
+    h('div', { id: 'home-session-hero', class: 'tp7-card tp7-card--screen', style: 'border-radius:var(--radius-lg);padding:16px' },
       h('div', { style: 'display:flex;align-items:center;gap:18px' },
         ui.tapeReel(total ? done / total : 0, { size: 96, label: `${done}/${total}`, spinning: done > 0 }),
         h('div', { style: 'display:flex;flex-direction:column;gap:16px;flex:1' },
@@ -103,11 +104,11 @@ export async function renderHome(day) {
                 h('span', { class: 'tp7-readout__unit' }, "КГ"))))))));
 
   // Exercise list
-  const list = h('div', { style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
+  const list = h('div', { id: 'home-exercise-list', style: 'display:flex;flex-direction:column;gap:8px;margin-top:16px' });
 
   if (dayExercises.length === 0) {
     list.appendChild(
-      h('div', { class: 'tp7-card tp7-card--sunken', style: 'text-align:center;padding:22px 18px' },
+      h('div', { id: 'home-empty-state', class: 'tp7-card tp7-card--sunken', style: 'text-align:center;padding:22px 18px' },
         h('div', { class: 'tp7-mono', style: 'font-size:var(--text-2xs);font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px' },
           "НЕМАЄ ВПРАВ"),
         h('div', { style: 'font:var(--weight-regular) var(--text-sm)/1.4 var(--font-sans);color:var(--text-tertiary)' },
@@ -119,7 +120,7 @@ export async function renderHome(day) {
       const effort = Math.min(3, logCount);
 
       list.appendChild(
-        h('div', { class: 'tp7-row', style: 'padding:13px 14px', onclick: () => renderExerciseModal(ex) },
+        h('div', { id: `home-exercise-row-${ex.id}`, class: 'tp7-row', style: 'padding:13px 14px', onclick: () => renderExerciseModal(ex) },
           h('div', { style: 'display:flex;gap:12px' },
             h('span', { class: 'tp7-mono', style: 'font-size:var(--text-sm);color:var(--text-tertiary);padding-top:1px;min-width:22px' },
               String(i + 1).padStart(2, '0')),
