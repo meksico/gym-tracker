@@ -24,7 +24,7 @@ describe('sheets.appendLog', () => {
 
     expect(row).toBe(5);
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('Logs!A2%3AE:append'),
+      expect.stringContaining('Logs!A2%3AH:append'),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({ Authorization: 'Bearer test-access-token' }),
@@ -68,9 +68,9 @@ describe('sheets.updateLog', () => {
 
     expect(fetch).toHaveBeenCalledTimes(2);
     // uuid-2 is at index 1 → sheetRow = 3
-    expect(fetch.mock.calls[1][0]).toContain('Logs!D3%3AE3');
+    expect(fetch.mock.calls[1][0]).toContain('Logs!D3%3AH3');
     const body = JSON.parse(fetch.mock.calls[1][1].body);
-    expect(body.values[0]).toEqual([90, 8]);
+    expect(body.values[0]).toEqual([90, 8, '', '', '']);
   });
 
   it('throws when uuid is not found in the sheet', async () => {
@@ -97,8 +97,8 @@ describe('sheets.getPlan', () => {
   it('maps sheet rows to plan objects', async () => {
     mockFetch(okJson({
       values: [
-        ['Monday', 'Chest', 'Bench Press', '80%', '4', '8', '12', '80', 'https://yt.co/abc'],
-        ['Friday', 'Legs',  'Squat',       '',    '3', '5', '8',  '',   ''],
+        ['Monday', 'Chest', 'Bench Press', '80%', '4', '8', '12', '80', 'https://yt.co/abc', '', ''],
+        ['Friday', 'Legs',  'Squat',       '',    '3', '5', '8',  '',   '',                  '', 'TRUE'],
       ],
     }));
 
@@ -108,10 +108,12 @@ describe('sheets.getPlan', () => {
     expect(plan[0]).toEqual({
       id: 1, day: 'Monday', group: 'Chest', name: 'Bench Press',
       formula: '80%', sets: 4, minReps: 8, maxReps: 12, weight: '80', youtubeUrl: 'https://yt.co/abc',
+      isTimeBased: false,
     });
     expect(plan[1]).toEqual({
       id: 2, day: 'Friday', group: 'Legs', name: 'Squat',
       formula: '', sets: 3, minReps: 5, maxReps: 8, weight: '', youtubeUrl: '',
+      isTimeBased: true,
     });
   });
 
