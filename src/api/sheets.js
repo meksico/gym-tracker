@@ -31,20 +31,21 @@ async function getRange(range) {
 
 // ── Plan ─────────────────────────────────────────────────────────────────────
 
-// Columns: Plan, Group, Name, Formula, Sets, Min Repeats, Max Repeats, Weight, Youtube URL
+// Columns: Plan, Group, Name, Formula, Sets, Min Repeats, Max Repeats, Weight, Youtube URL, Set, IsTimeBased
 export async function getPlan() {
-  const rows = await getRange('Data!A2:I');
+  const rows = await getRange('Data!A2:K');
   return rows.map((row, i) => ({
-    id:         i + 1,
-    day:        row[0] ?? '',
-    group:      row[1] ?? '',
-    name:       row[2] ?? '',
-    formula:    row[3] ?? '',
-    sets:       Number(row[4] ?? 0),
-    minReps:    Number(row[5] ?? 0),
-    maxReps:    Number(row[6] ?? 0),
-    weight:     row[7] ?? '',
-    youtubeUrl: row[8] ?? '',
+    id:          i + 1,
+    day:         row[0]  ?? '',
+    group:       row[1]  ?? '',
+    name:        row[2]  ?? '',
+    formula:     row[3]  ?? '',
+    sets:        Number(row[4] ?? 0),
+    minReps:     Number(row[5] ?? 0),
+    maxReps:     Number(row[6] ?? 0),
+    weight:      row[7]  ?? '',
+    youtubeUrl:  row[8]  ?? '',
+    isTimeBased: row[10] === 'TRUE',
   }));
 }
 
@@ -66,11 +67,11 @@ export async function getRecentWeights() {
 
 // ── Logs ─────────────────────────────────────────────────────────────────────
 
-// Columns: UUID, Date, Exercise, Weight, Reps  (A–E)
-// Columns F–M are Sheets formulas — never written by the app.
+// Columns: UUID, Date, Exercise, Weight, Reps, Speed, Level, Time  (A–H)
+// Columns I–M are Sheets formulas — never written by the app.
 export async function appendLog(entry) {
   logger.debug('sheets', 'appendLog', { uuid: entry.uuid, exercise: entry.exercise });
-  const range = 'Logs!A2:E';
+  const range = 'Logs!A2:H';
   const res = await fetch(
     `${BASE}/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
     {
@@ -83,6 +84,9 @@ export async function appendLog(entry) {
           entry.exercise,
           entry.weight ?? '',
           entry.reps   ?? '',
+          entry.speed  ?? '',
+          entry.level  ?? '',
+          entry.time   ?? '',
         ]],
       }),
     },
@@ -111,13 +115,19 @@ export async function updateLog(uuid, patch) {
   }
   const sheetRow = idx + 2; // +1 for 0-based, +1 for header row
 
-  const range = `Logs!D${sheetRow}:E${sheetRow}`;
+  const range = `Logs!D${sheetRow}:H${sheetRow}`;
   const res = await fetch(
     `${BASE}/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
     {
       method:  'PUT',
       headers: authHeaders(),
-      body: JSON.stringify({ values: [[patch.weight ?? '', patch.reps ?? '']] }),
+      body: JSON.stringify({ values: [[
+        patch.weight ?? '',
+        patch.reps   ?? '',
+        patch.speed  ?? '',
+        patch.level  ?? '',
+        patch.time   ?? '',
+      ]] }),
     },
   );
   if (!res.ok) {

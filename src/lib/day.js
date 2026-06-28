@@ -1,20 +1,13 @@
-export const TRAINING_DAYS = ['Monday', 'Wednesday', 'Friday'];
+const DAY_ORDER = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Maps JS getDay() (0=Sun) to nearest upcoming training day
-const JS_DAY_TO_TRAINING = {
-  0: 'Monday',    // Sunday    → next is Monday
-  1: 'Monday',    // Monday    ✓
-  2: 'Wednesday', // Tuesday   → next is Wednesday
-  3: 'Wednesday', // Wednesday ✓
-  4: 'Friday',    // Thursday  → next is Friday
-  5: 'Friday',    // Friday    ✓
-  6: 'Monday',    // Saturday  → next is Monday
-};
-
-export function getCurrentDay() {
-  return JS_DAY_TO_TRAINING[new Date().getDay()];
-}
-
-export function getTrainingDays() {
-  return [...TRAINING_DAYS];
+// Returns today's day name if it's in trainingDays, otherwise the nearest upcoming one.
+export function getDefaultDay(trainingDays) {
+  const today = DAY_ORDER[new Date().getDay()];
+  if (trainingDays.includes(today)) return today;
+  const idx = DAY_ORDER.indexOf(today);
+  for (let i = 1; i <= 7; i++) {
+    const candidate = DAY_ORDER[(idx + i) % 7];
+    if (trainingDays.includes(candidate)) return candidate;
+  }
+  return trainingDays[0] ?? 'Monday';
 }

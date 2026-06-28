@@ -1,20 +1,20 @@
 import { h, icon, ui } from './tp7-ui.js';
 import { getPlan } from '../store/planStore.js';
 import { getStarCounts, getTodayLogs } from '../store/logStore.js';
-import { getCurrentDay, getTrainingDays } from '../lib/day.js';
+import { getDefaultDay } from '../lib/day.js';
 import { renderExerciseModal } from './exerciseModal.js';
 import { navigate } from '../router.js';
 import { getSyncStatus } from '../sync/syncEngine.js';
 import { signIn } from '../auth/auth.js';
 
-const DAY_LABELS = { Monday: "ПН", Wednesday: "СР", Friday: "ПТ" };
+const DAY_LABELS = { Monday: "ПН", Tuesday: "ВТ", Wednesday: "СР", Thursday: "ЧТ", Friday: "ПТ", Saturday: "СБ", Sunday: "НД" };
+const DAY_ORDER  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 let selectedDay = null;
 let keepFlipped = false;
 
 export async function renderHome(day) {
   if (day) selectedDay = day;
-  if (!selectedDay) selectedDay = getCurrentDay();
 
   const app = document.getElementById('app');
   app.innerHTML = '';
@@ -57,8 +57,6 @@ export async function renderHome(day) {
   window.addEventListener('auth-token-refreshed', () => { syncBanner.style.display = 'none'; }, { once: false });
   app.appendChild(syncBanner);
 
-  const dayItems = getTrainingDays().map((d) => ({ value: d, label: DAY_LABELS[d] || d }));
-
   // ── Load data ──
   const [plan, starCounts, todayLogs] = await Promise.all([
     getPlan(),
@@ -66,10 +64,23 @@ export async function renderHome(day) {
     getTodayLogs(),
   ]);
 
+  // Derive training days from plan in calendar order; fall back to Mon if plan is empty.
+  const trainingDays = DAY_ORDER.filter(d => plan.some(ex => ex.day === d));
+  if (!trainingDays.length) trainingDays.push('Monday');
+
+  // If the remembered day is no longer in the plan (e.g. day was removed), reset it.
+  if (!trainingDays.includes(selectedDay)) selectedDay = null;
+  if (!selectedDay) selectedDay = getDefaultDay(trainingDays);
+
+  const dayItems = trainingDays.map((d) => ({ value: d, label: DAY_LABELS[d] || d }));
+
   const dayExercises = plan.filter((ex) => ex.day === selectedDay);
-  const done = dayExercises.filter((ex) => (starCounts[ex.name] || 0) >= ex.sets).length;
+  const done = dayExercises.filter((ex) => {
+    const req = (ex.isTimeBased && !ex.sets) ? 1 : ex.sets;
+    return (starCounts[ex.name] || 0) >= req;
+  }).length;
   const total = dayExercises.length;
-  const sessionVolume = todayLogs.reduce((sum, log) => sum + log.weight * log.reps, 0);
+  const sessionVolume = todayLogs.reduce((sum, log) => sum + (log.weight || 0) * (log.reps || 0), 0);
 
   // ── Scrollable body ──
   const scroll = h('div', { class: 'screen-scroll' });
@@ -192,7 +203,8 @@ export async function renderHome(day) {
   } else {
     dayExercises.forEach((ex, i) => {
       const logCount = starCounts[ex.name] || 0;
-      const complete = logCount >= ex.sets;
+      const req = (ex.isTimeBased && !ex.sets) ? 1 : ex.sets;
+      const complete = logCount >= req;
       const effort = Math.min(3, logCount);
 
       list.appendChild(
@@ -205,8 +217,10 @@ export async function renderHome(day) {
                 h('div', { style: 'flex:1;min-width:0;font:var(--weight-semibold) var(--text-md)/1.2 var(--font-sans);text-wrap:pretty' }, ex.name),
                 ui.groupTag(ex.group)),
               h('div', { style: 'display:flex;align-items:center;gap:14px;margin-top:11px' },
-                ui.effortMeter(effort),
-                h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-secondary)' },
+                ex.isTimeBased
+                  ? icon(complete ? 'starFill' : 'star', { size: 16 })
+                  : ui.effortMeter(effort),
+                !ex.isTimeBased && h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);color:var(--text-secondary)' },
                   `${ex.sets}×${ex.minReps}–${ex.maxReps}`),
                 h('div', { style: 'flex:1' }),
                 logCount > 0

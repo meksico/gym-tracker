@@ -5,7 +5,6 @@ import { getPlan as fetchPlan, getRecentWeights as fetchRecentWeights } from './
 import { renderHome } from './ui/home.js';
 import { renderSettings } from './ui/settings.js';
 import { ensureAuth } from './ui/loginScreen.js';
-import { getCurrentDay } from './lib/day.js';
 import { startSyncEngine } from './sync/syncEngine.js';
 import { getCurrentRoute } from './router.js';
 import { logger } from './lib/logger.js';
@@ -35,7 +34,7 @@ async function loadAndRenderHome() {
 
   const cached = await getPlan();
   if (cached.length > 0) {
-    await renderHome(getCurrentDay());
+    await renderHome();
   } else {
     app.innerHTML = `
       <div class="setup-screen">

@@ -38,6 +38,8 @@ const ICONS = {
   check:'<path d="m4 12 5 6L20 6"/>',
   pencil:'<path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/>',
   ret:'<path d="M9 10 5 14l4 4"/><path d="M5 14h11a3 3 0 0 0 3-3V6"/>',
+  star:    '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  starFill:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" data-fill/>',
 };
 export function icon(name, { size = 24, stroke = 2 } = {}) {
   const filled = /data-fill/.test(ICONS[name] || '');
