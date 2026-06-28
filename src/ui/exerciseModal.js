@@ -91,7 +91,7 @@ export async function renderExerciseModal(exercise) {
   // Load data
   const [logs_init, recentWeight] = await Promise.all([
     getLogsByExercise(exercise.name),
-    isTB ? Promise.resolve(null) : getRecentWeightForExercise(exercise.name),
+    getRecentWeightForExercise(exercise.name),
   ]);
   let logs = logs_init;
   let editingUuid = null;
@@ -167,8 +167,33 @@ export async function renderExerciseModal(exercise) {
     let level = +(cached?.level ?? lastLog?.level ?? 0);
     let time  = +(cached?.time  ?? lastLog?.time  ?? 0);
 
-    dock.appendChild(
-      h('div', { id: 'modal-recall-row', style: 'display:flex;align-items:center;gap:10px' }, reelWrap));
+    const recallRowTB = h('div', { id: 'modal-recall-row', style: 'display:flex;align-items:center;gap:10px' });
+    if (recentWeight?.maxSpeed || recentWeight?.maxLevel || recentWeight?.maxTime) {
+      const parts = [];
+      if (recentWeight.maxSpeed) parts.push(`${recentWeight.maxSpeed} км/ч`);
+      if (recentWeight.maxLevel) parts.push(`Рів ${recentWeight.maxLevel}`);
+      if (recentWeight.maxTime)  parts.push(`${recentWeight.maxTime} хв`);
+      const recallBtn = h('button', { id: 'modal-recall-btn', type: 'button',
+        style: 'appearance:none;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;height:34px;cursor:pointer;' +
+               'background:var(--bg-sunken);border:1px solid var(--border-channel);box-shadow:var(--shadow-inset);' +
+               'border-radius:var(--radius-sm);font:var(--weight-medium) var(--text-xs)/1 var(--font-mono);color:var(--text-secondary)' },
+        icon('ret', { size: 14 }),
+        h('b', { style: 'text-transform:uppercase;letter-spacing:var(--tracking-wide)' }, "ОСТАННІЙ: "),
+        document.createTextNode(parts.join(' · ')));
+      recallBtn.addEventListener('click', () => {
+        if (editingUuid) return;
+        speed = recentWeight.maxSpeed ?? 0;
+        level = recentWeight.maxLevel ?? 0;
+        time  = recentWeight.maxTime  ?? 0;
+        inputCache[exercise.name] = { speed, level, time };
+        rebuildTimeFields();
+        refreshTimeSummary();
+      });
+      recallRowTB.append(recallBtn, reelWrap);
+    } else {
+      recallRowTB.appendChild(reelWrap);
+    }
+    dock.appendChild(recallRowTB);
 
     const stepRow = h('div', { id: 'modal-step-row', style: 'display:flex;gap:10px' });
     const volNumEl = h('span', { class: 'tp7-mono', style: 'font-size:var(--text-md);font-weight:700;color:var(--text-primary)' });

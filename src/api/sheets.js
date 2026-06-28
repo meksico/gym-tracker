@@ -51,10 +51,10 @@ export async function getPlan() {
 
 // ── Recent weights ────────────────────────────────────────────────────────────
 
-// Columns: Група м'язів, Вправа, MAX of Вага (кг), MAX of Факт. повторення
+// Columns: Група м'язів, Вправа, MAX of Вага (кг), MAX of Факт. повторення, MAX of Швидкість, MAX of Рівень, MAX of Час хв
 // "Recent weight" tab is a pivot maintained by Sheets formulas — read-only.
 export async function getRecentWeights() {
-  const rows = await getRange("Recent weight!A2:D");
+  const rows = await getRange("Recent weight!A2:G");
   return rows
     .filter(row => (row[1] ?? '') !== '')  // column B (Вправа) must be populated
     .map(row => ({
@@ -62,6 +62,9 @@ export async function getRecentWeights() {
       group:     row[0] ?? '',
       maxWeight: Number(row[2] ?? 0),
       maxReps:   Number(row[3] ?? 0),
+      maxSpeed:  Number(row[4] ?? 0),
+      maxLevel:  Number(row[5] ?? 0),
+      maxTime:   Number(row[6] ?? 0),
     }));
 }
 
