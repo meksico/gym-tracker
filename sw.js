@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-tracker-v13';
+const CACHE_NAME = 'gym-tracker-v14';
 
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '');
 
