@@ -33,6 +33,9 @@ export function openDb() {
       if (!db.objectStoreNames.contains(STORES.APP_LOG)) {
         db.createObjectStore(STORES.APP_LOG, { keyPath: 'id', autoIncrement: true });
       }
+      if (!db.objectStoreNames.contains(STORES.BODY_WEIGHT)) {
+        db.createObjectStore(STORES.BODY_WEIGHT, { keyPath: 'key' });
+      }
     };
 
     request.onsuccess = (event) => resolve(event.target.result);

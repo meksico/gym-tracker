@@ -1,6 +1,7 @@
 import { getQueue, removeFromQueue } from '../store/queueStore.js';
-import { appendLog, updateLog, getRecentWeights } from '../api/sheets.js';
+import { appendLog, updateLog, getRecentWeights, appendBodyWeight, getBodyWeights } from '../api/sheets.js';
 import { cacheRecentWeights } from '../store/recentWeightStore.js';
+import { cacheBodyWeight } from '../store/bodyWeightStore.js';
 import { logger } from '../lib/logger.js';
 
 let draining        = false;
@@ -38,6 +39,8 @@ export async function drainQueue() {
           await appendLog(op.payload);
         } else if (op.type === 'PATCH') {
           await updateLog(op.uuid, op.payload);
+        } else if (op.type === 'BODY_WEIGHT') {
+          await appendBodyWeight(op.weight);
         }
         await removeFromQueue(op.id);
         synced++;
@@ -65,6 +68,12 @@ export async function drainQueue() {
         await cacheRecentWeights(weights);
       } catch (err) {
         logger.warn('sync', 'Recent-weight refresh failed', { error: err.message });
+      }
+      try {
+        const bodyWeights = await getBodyWeights();
+        await cacheBodyWeight(bodyWeights);
+      } catch (err) {
+        logger.warn('sync', 'Body-weight refresh failed', { error: err.message });
       }
     }
   } finally {

@@ -40,6 +40,13 @@ Vanilla JS offline-first PWA. No build tool, no framework — browser-native ESM
 | `home-exercise-list` | Container for all exercise rows |
 | `home-exercise-row-{id}` | Each exercise row (keyed by `ex.id`) |
 | `home-empty-state` | "No exercises" placeholder card |
+| `home-body` | Relative wrapper around the scroll area + floating action panel |
+| `home-action-panel` | Floating bottom panel, pinned over the exercise list |
+| `home-action-bar` | Row of action buttons inside the panel |
+| `home-bodyweight-btn` | "ВАГА ТІЛА" button — shows latest weight, toggles the input row |
+| `home-bodyweight-row` | Expandable row with weight input + save button |
+| `home-bodyweight-input` | Editable weight input, prefilled from latest BodyWeight sheet value |
+| `home-bodyweight-save-btn` | Save button for the body-weight entry |
 
 **Exercise modal** (`src/ui/exerciseModal.js`, `src/ui/doneToday.js`)
 | ID | Element |

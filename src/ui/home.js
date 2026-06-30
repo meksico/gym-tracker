@@ -4,8 +4,11 @@ import { getStarCounts, getTodayLogs } from '../store/logStore.js';
 import { getDefaultDay } from '../lib/day.js';
 import { renderExerciseModal } from './exerciseModal.js';
 import { navigate } from '../router.js';
-import { getSyncStatus } from '../sync/syncEngine.js';
+import { getSyncStatus, drainQueue } from '../sync/syncEngine.js';
 import { signIn } from '../auth/auth.js';
+import { getLatestBodyWeight, cacheBodyWeight } from '../store/bodyWeightStore.js';
+import { enqueueBodyWeight } from '../store/queueStore.js';
+import { formatBodyWeightDate } from '../api/sheets.js';
 
 const DAY_LABELS = { Monday: "ПН", Tuesday: "ВТ", Wednesday: "СР", Thursday: "ЧТ", Friday: "ПТ", Saturday: "СБ", Sunday: "НД" };
 
@@ -57,10 +60,11 @@ export async function renderHome(day) {
   app.appendChild(syncBanner);
 
   // ── Load data ──
-  const [plan, starCounts, todayLogs] = await Promise.all([
+  const [plan, starCounts, todayLogs, latestBodyWeight] = await Promise.all([
     getPlan(),
     getStarCounts(),
     getTodayLogs(),
+    getLatestBodyWeight(),
   ]);
 
   // Derive training days from plan in sheet (column A) order; fall back to Mon if plan is empty.
@@ -85,7 +89,7 @@ export async function renderHome(day) {
   const sessionVolume = todayLogs.reduce((sum, log) => sum + (log.weight || 0) * (log.reps || 0), 0);
 
   // ── Scrollable body ──
-  const scroll = h('div', { class: 'screen-scroll' });
+  const scroll = h('div', { class: 'home-scroll' });
 
   // ── Flip card: front = session stats, back = day picker ──
   //
@@ -236,5 +240,56 @@ export async function renderHome(day) {
   }
 
   scroll.appendChild(list);
-  app.appendChild(scroll);
+
+  // ── Floating action panel (Home only) ──
+  const actionBtnTextStyle = 'font:var(--weight-semibold) var(--text-2xs)/1 var(--font-sans);letter-spacing:var(--tracking-label);' +
+    'text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+
+  const bwValue = h('span', { class: 'tp7-mono', style: 'font-size:var(--text-xs);font-weight:700;color:var(--text-primary);flex:none' },
+    latestBodyWeight?.weight ? ` ${latestBodyWeight.weight} КГ` : '');
+  const bwBtn = h('div', { id: 'home-bodyweight-btn', class: 'home-action-btn' },
+    h('span', { style: actionBtnTextStyle }, "ВАГА"), bwValue);
+
+  const actionBar = h('div', { id: 'home-action-bar', class: 'home-action-bar' }, bwBtn);
+
+  const bwInput = h('input', {
+    id: 'home-bodyweight-input', type: 'text', inputmode: 'decimal',
+    value: latestBodyWeight?.weight ? String(latestBodyWeight.weight) : '',
+    placeholder: '0',
+    style: 'flex:1;height:40px;background:var(--grey-50);border:1px solid var(--border-channel);' +
+           'box-shadow:var(--shadow-inset);border-radius:var(--radius-sm);text-align:center;' +
+           'font:700 var(--text-lg)/1 var(--font-mono);color:var(--text-primary);outline:none;' +
+           '-webkit-appearance:none;appearance:none',
+  });
+  const bwSaveBtn = ui.iconButton('check', { variant: 'critical', label: "Зберегти вагу тіла" });
+  bwSaveBtn.id = 'home-bodyweight-save-btn';
+  const bwRow = h('div', { id: 'home-bodyweight-row', class: 'home-bodyweight-row', style: 'display:none' }, bwInput, bwSaveBtn);
+
+  let bwExpanded = false;
+  function toggleBwRow() {
+    bwExpanded = !bwExpanded;
+    bwRow.style.display = bwExpanded ? 'flex' : 'none';
+    if (bwExpanded) bwInput.focus();
+  }
+  bwBtn.addEventListener('click', toggleBwRow);
+
+  bwSaveBtn.addEventListener('click', async () => {
+    const v = parseFloat(bwInput.value.replace(',', '.'));
+    if (isNaN(v) || v <= 0) return;
+    bwSaveBtn.disabled = true;
+    try {
+      await cacheBodyWeight([{ date: formatBodyWeightDate(new Date()), weight: v }]);
+      await enqueueBodyWeight(v);
+      drainQueue();
+      bwValue.textContent = ` ${v} КГ`;
+      toggleBwRow();
+    } finally {
+      bwSaveBtn.disabled = false;
+    }
+  });
+
+  const actionPanel = h('div', { id: 'home-action-panel', class: 'tp7-card home-action-panel' }, actionBar, bwRow);
+
+  const body = h('div', { id: 'home-body', class: 'home-body' }, scroll, actionPanel);
+  app.appendChild(body);
 }

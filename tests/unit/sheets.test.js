@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { appendLog, updateLog, getPlan } from '../../src/api/sheets.js';
+import { appendLog, updateLog, getPlan, getBodyWeights, appendBodyWeight } from '../../src/api/sheets.js';
 
 vi.mock('../../src/auth/auth.js', () => ({
   getAccessToken: () => 'test-access-token',
@@ -128,5 +128,48 @@ describe('sheets.getPlan', () => {
     const plan = await getPlan();
     expect(plan[0].group).toBe('');
     expect(plan[0].sets).toBe(0);
+  });
+});
+
+describe('sheets.getBodyWeights', () => {
+  it('maps sheet rows to body weight objects', async () => {
+    mockFetch(okJson({ values: [['06/28/2026', '80.5'], ['06/30/2026', '80.2']] }));
+    const rows = await getBodyWeights();
+    expect(rows).toEqual([
+      { date: '06/28/2026', weight: 80.5 },
+      { date: '06/30/2026', weight: 80.2 },
+    ]);
+  });
+
+  it('filters out rows with no weight in column B', async () => {
+    mockFetch(okJson({ values: [['06/28/2026', '80.5'], ['06/29/2026', '']] }));
+    const rows = await getBodyWeights();
+    expect(rows).toHaveLength(1);
+  });
+
+  it('returns empty array when sheet has no rows', async () => {
+    mockFetch(okJson({ values: [] }));
+    const rows = await getBodyWeights();
+    expect(rows).toEqual([]);
+  });
+});
+
+describe('sheets.appendBodyWeight', () => {
+  it('sends a POST with a zero-padded MM/DD/YYYY date and the weight', async () => {
+    mockFetch(okJson({ updates: { updatedRange: 'BodyWeight!A2:B2' } }));
+    await appendBodyWeight(80.2);
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('BodyWeight!A2%3AB:append'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(body.values[0][0]).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+    expect(body.values[0][1]).toBe(80.2);
+  });
+
+  it('throws on non-ok response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => 'Server Error' }));
+    await expect(appendBodyWeight(80)).rejects.toThrow('Sheets append failed (HTTP 500)');
   });
 });

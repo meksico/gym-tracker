@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { enqueuePost, enqueuePatch, getQueue } from '../../src/store/queueStore.js';
+import { enqueuePost, enqueuePatch, enqueueBodyWeight, getQueue } from '../../src/store/queueStore.js';
 import { drainQueue, getSyncStatus, _resetForTesting } from '../../src/sync/syncEngine.js';
+import { getLatestBodyWeight } from '../../src/store/bodyWeightStore.js';
 
 // Replace the real Sheets API with controllable mocks
 vi.mock('../../src/api/sheets.js', () => ({
   appendLog:        vi.fn(),
   updateLog:        vi.fn(),
   getRecentWeights: vi.fn().mockResolvedValue([]),
+  appendBodyWeight: vi.fn(),
+  getBodyWeights:   vi.fn().mockResolvedValue([]),
 }));
 
-import { appendLog, updateLog, getRecentWeights } from '../../src/api/sheets.js';
+import { appendLog, updateLog, getRecentWeights, appendBodyWeight, getBodyWeights } from '../../src/api/sheets.js';
 
 beforeEach(() => {
   _resetForTesting();
@@ -17,6 +20,8 @@ beforeEach(() => {
   appendLog.mockResolvedValue(5);
   updateLog.mockResolvedValue(undefined);
   getRecentWeights.mockResolvedValue([]);
+  appendBodyWeight.mockResolvedValue(undefined);
+  getBodyWeights.mockResolvedValue([]);
   // jsdom's navigator.onLine is true by default
 });
 
@@ -67,6 +72,28 @@ describe('syncFlow: PATCH', () => {
 
     expect(updateLog).toHaveBeenCalledOnce();
     expect(updateLog.mock.calls[0][1].weight).toBe(60);
+  });
+});
+
+describe('syncFlow: BODY_WEIGHT', () => {
+  it('drains a BODY_WEIGHT op and calls appendBodyWeight', async () => {
+    await enqueueBodyWeight(80.2);
+
+    await drainQueue();
+
+    expect(appendBodyWeight).toHaveBeenCalledOnce();
+    expect(appendBodyWeight).toHaveBeenCalledWith(80.2);
+    expect(await getQueue()).toHaveLength(0);
+  });
+
+  it('refreshes the cached latest body weight after a successful sync', async () => {
+    getBodyWeights.mockResolvedValue([{ date: '06/30/2026', weight: 80.2 }]);
+    await enqueueBodyWeight(80.2);
+
+    await drainQueue();
+
+    const latest = await getLatestBodyWeight();
+    expect(latest).toEqual({ key: 'latest', date: '06/30/2026', weight: 80.2 });
   });
 });
 

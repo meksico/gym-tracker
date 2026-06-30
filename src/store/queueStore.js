@@ -22,6 +22,11 @@ export async function enqueuePatch(uuid, payload) {
   logger.debug('queue', 'PATCH enqueued', { uuid });
 }
 
+export async function enqueueBodyWeight(weight) {
+  await putInStore(STORES.QUEUE, { type: 'BODY_WEIGHT', weight, enqueuedAt: Date.now() });
+  logger.debug('queue', 'BODY_WEIGHT enqueued', { weight });
+}
+
 export async function getQueue() {
   const all = await getAllFromStore(STORES.QUEUE);
   return all.sort((a, b) => a.id - b.id); // oldest-first

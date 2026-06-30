@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-tracker-v12';
+const CACHE_NAME = 'gym-tracker-v13';
 
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '');
 
@@ -18,6 +18,7 @@ const SHELL_ASSETS = [
   `${BASE}/src/store/db.js`,
   `${BASE}/src/store/planStore.js`,
   `${BASE}/src/store/recentWeightStore.js`,
+  `${BASE}/src/store/bodyWeightStore.js`,
   `${BASE}/src/store/logStore.js`,
   `${BASE}/src/store/queueStore.js`,
   `${BASE}/src/lib/day.js`,

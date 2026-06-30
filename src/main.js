@@ -1,7 +1,8 @@
 import { openDb } from './store/db.js';
 import { getPlan, cachePlan } from './store/planStore.js';
 import { cacheRecentWeights } from './store/recentWeightStore.js';
-import { getPlan as fetchPlan, getRecentWeights as fetchRecentWeights } from './api/sheets.js';
+import { cacheBodyWeight } from './store/bodyWeightStore.js';
+import { getPlan as fetchPlan, getRecentWeights as fetchRecentWeights, getBodyWeights as fetchBodyWeights } from './api/sheets.js';
 import { renderHome } from './ui/home.js';
 import { renderSettings } from './ui/settings.js';
 import { ensureAuth } from './ui/loginScreen.js';
@@ -24,9 +25,10 @@ async function loadAndRenderHome() {
 
   if (navigator.onLine) {
     try {
-      const [planRows, weightRows] = await Promise.all([fetchPlan(), fetchRecentWeights()]);
+      const [planRows, weightRows, bodyWeightRows] = await Promise.all([fetchPlan(), fetchRecentWeights(), fetchBodyWeights()]);
       await cachePlan(planRows);
       await cacheRecentWeights(weightRows);
+      await cacheBodyWeight(bodyWeightRows);
     } catch (err) {
       logger.warn('main', 'Online fetch failed, using cache', { error: err.message });
     }

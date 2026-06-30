@@ -1,5 +1,5 @@
 export const DB_NAME    = 'gymTracker';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export const STORES = {
   PLAN:          'plan',
@@ -8,6 +8,7 @@ export const STORES = {
   QUEUE:         'queue',
   META:          'meta',
   APP_LOG:       'appLog',
+  BODY_WEIGHT:   'bodyWeight',
 };
 
 export const LOG_MAX_ENTRIES = 200;

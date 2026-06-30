@@ -16,6 +16,14 @@ function formatSheetDate(d) {
   return `${M}/${D}/${Y} ${h}:${mm}:${ss}`;
 }
 
+// Produces "MM/DD/YYYY" matching the BodyWeight sheet's existing date column format
+export function formatBodyWeightDate(d) {
+  const M = String(d.getMonth() + 1).padStart(2, '0');
+  const D = String(d.getDate()).padStart(2, '0');
+  const Y = d.getFullYear();
+  return `${M}/${D}/${Y}`;
+}
+
 function authHeaders() {
   return {
     Authorization: `Bearer ${getAccessToken()}`,
@@ -67,6 +75,38 @@ export async function getRecentWeights() {
       maxLevel:  Number(row[5] ?? 0),
       maxTime:   Number(row[6] ?? 0),
     }));
+}
+
+// ── Body weight ────────────────────────────────────────────────────────────────
+
+// Columns: Date (MM/DD/YYYY), Weight (kg)  (A–B)
+export async function getBodyWeights() {
+  const rows = await getRange('BodyWeight!A2:B');
+  return rows
+    .filter(row => (row[1] ?? '') !== '')
+    .map(row => ({
+      date:   row[0] ?? '',
+      weight: Number(row[1] ?? 0),
+    }));
+}
+
+export async function appendBodyWeight(weight) {
+  logger.debug('sheets', 'appendBodyWeight', { weight });
+  const range = 'BodyWeight!A2:B';
+  const res = await fetch(
+    `${BASE}/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method:  'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ values: [[formatBodyWeightDate(new Date()), weight]] }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.error('sheets', 'appendBodyWeight failed', { status: res.status });
+    throw new Error(`Sheets append failed (HTTP ${res.status}): ${body}`);
+  }
+  logger.info('sheets', 'appendBodyWeight ok', { weight });
 }
 
 // ── Logs ─────────────────────────────────────────────────────────────────────

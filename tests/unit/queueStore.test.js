@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { enqueuePost, enqueuePatch, getQueue, removeFromQueue } from '../../src/store/queueStore.js';
+import { enqueuePost, enqueuePatch, enqueueBodyWeight, getQueue, removeFromQueue } from '../../src/store/queueStore.js';
 
 describe('queueStore', () => {
   it('enqueuePost adds a POST op to the queue', async () => {
@@ -52,6 +52,14 @@ describe('queueStore', () => {
     await removeFromQueue(before[0].id);
     const after = await getQueue();
     expect(after).toHaveLength(0);
+  });
+
+  it('enqueueBodyWeight adds a BODY_WEIGHT op to the queue', async () => {
+    await enqueueBodyWeight(80.2);
+    const queue = await getQueue();
+    expect(queue).toHaveLength(1);
+    expect(queue[0].type).toBe('BODY_WEIGHT');
+    expect(queue[0].weight).toBe(80.2);
   });
 
   it('POST and PATCH coexist in the queue', async () => {
