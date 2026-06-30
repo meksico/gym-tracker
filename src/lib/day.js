@@ -1,4 +1,13 @@
 const DAY_ORDER = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_LOOKUP = new Map(DAY_ORDER.map(d => [d.toLowerCase(), d]));
+
+// Maps a raw sheet value to its canonical weekday name regardless of case/whitespace
+// (e.g. "TUESDAY ", " tuesday" -> "Tuesday"). Non-weekday values (custom day labels)
+// are returned trimmed, unchanged.
+export function normalizeDay(raw) {
+  const trimmed = (raw ?? '').trim();
+  return DAY_LOOKUP.get(trimmed.toLowerCase()) ?? trimmed;
+}
 
 // Returns today's day name if it's in trainingDays, otherwise the nearest upcoming one.
 export function getDefaultDay(trainingDays) {

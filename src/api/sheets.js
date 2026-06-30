@@ -1,6 +1,7 @@
 import { getAccessToken } from '../auth/auth.js';
 import { SHEET_ID } from '../config.js';
 import { logger } from '../lib/logger.js';
+import { normalizeDay } from '../lib/day.js';
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`;
 
@@ -36,7 +37,7 @@ export async function getPlan() {
   const rows = await getRange('Data!A2:K');
   return rows.map((row, i) => ({
     id:          i + 1,
-    day:         row[0]  ?? '',
+    day:         normalizeDay(row[0]),
     group:       row[1]  ?? '',
     name:        row[2]  ?? '',
     formula:     row[3]  ?? '',

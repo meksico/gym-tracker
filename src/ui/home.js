@@ -8,7 +8,6 @@ import { getSyncStatus } from '../sync/syncEngine.js';
 import { signIn } from '../auth/auth.js';
 
 const DAY_LABELS = { Monday: "ПН", Tuesday: "ВТ", Wednesday: "СР", Thursday: "ЧТ", Friday: "ПТ", Saturday: "СБ", Sunday: "НД" };
-const DAY_ORDER  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 let selectedDay = null;
 let keepFlipped = false;
@@ -64,8 +63,11 @@ export async function renderHome(day) {
     getTodayLogs(),
   ]);
 
-  // Derive training days from plan in calendar order; fall back to Mon if plan is empty.
-  const trainingDays = DAY_ORDER.filter(d => plan.some(ex => ex.day === d));
+  // Derive training days from plan in sheet (column A) order; fall back to Mon if plan is empty.
+  const trainingDays = [];
+  for (const ex of plan) {
+    if (ex.day && !trainingDays.includes(ex.day)) trainingDays.push(ex.day);
+  }
   if (!trainingDays.length) trainingDays.push('Monday');
 
   // If the remembered day is no longer in the plan (e.g. day was removed), reset it.
